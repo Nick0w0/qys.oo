@@ -1,0 +1,27 @@
+<?php
+
+return [
+    'Id'                          => 'ID',
+    'School_id'                   => '所属学校',
+    'School_name'                 => '学校名称',
+    'Title'                       => '弹窗标题',
+    'Description'                 => '弹窗说明',
+    'Image'                       => '二维码图片',
+    'Popup_strategy'              => '弹窗策略',
+    'Popup_interval'              => '间隔天数',
+    'Status'                      => '状态',
+    'Starttime'                   => '开始时间',
+    'Endtime'                     => '结束时间',
+    'Weigh'                       => '排序',
+    'Createtime'                  => '创建时间',
+    'Updatetime'                  => '更新时间',
+    'Normal'                      => '正常',
+    'Hidden'                      => '隐藏',
+    'Always'                      => '每次进入都弹出',
+    'Daily'                       => '每天首次弹出',
+    'Interval'                    => '按间隔天数弹出',
+    'Platform_default'            => '平台默认',
+    'Please run phase3 sql first' => '请先执行第三阶段SQL升级脚本',
+    'Please bind school first'    => '请先绑定所属学校',
+    'Please select school'        => '请选择学校',
+];

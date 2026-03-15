@@ -1,0 +1,73 @@
+﻿<form id="edit-form" class="form-horizontal" role="form" data-toggle="validator" method="POST" action="">
+    <div class="form-group">
+        <label class="control-label col-xs-12 col-sm-2">{:__('Name')}:</label>
+        <div class="col-xs-12 col-sm-8">
+            <input id="c-name" class="form-control" name="row[name]" type="text" value="{$row.name|htmlentities}" data-rule="required">
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="control-label col-xs-12 col-sm-2">{:__('Short_name')}:</label>
+        <div class="col-xs-12 col-sm-8">
+            <input id="c-short_name" class="form-control" name="row[short_name]" type="text" value="{$row.short_name|default=''|htmlentities}">
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="control-label col-xs-12 col-sm-2">{:__('Province')}:</label>
+        <div class="col-xs-12 col-sm-8">
+            <input id="c-province" class="form-control" name="row[province]" type="text" value="{$row.province|default=''|htmlentities}">
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="control-label col-xs-12 col-sm-2">{:__('City')}:</label>
+        <div class="col-xs-12 col-sm-8">
+            <input id="c-city" class="form-control" name="row[city]" type="text" value="{$row.city|default=''|htmlentities}">
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="control-label col-xs-12 col-sm-2">{:__('Area')}:</label>
+        <div class="col-xs-12 col-sm-8">
+            <input id="c-area" class="form-control" name="row[area]" type="text" value="{$row.area|default=''|htmlentities}">
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="control-label col-xs-12 col-sm-2">{:__('Address')}:</label>
+        <div class="col-xs-12 col-sm-8">
+            <input id="c-address" class="form-control" name="row[address]" type="text" value="{$row.address|default=''|htmlentities}">
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="control-label col-xs-12 col-sm-2">{:__('Latitude')}:</label>
+        <div class="col-xs-12 col-sm-8">
+            <input id="c-latitude" class="form-control" name="row[latitude]" type="text" value="{$row.latitude|default=''|htmlentities}">
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="control-label col-xs-12 col-sm-2">{:__('Longitude')}:</label>
+        <div class="col-xs-12 col-sm-8">
+            <input id="c-longitude" class="form-control" name="row[longitude]" type="text" value="{$row.longitude|default=''|htmlentities}">
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="control-label col-xs-12 col-sm-2">{:__('Status')}:</label>
+        <div class="col-xs-12 col-sm-8">
+            <div class="radio">
+                {foreach name="statusList" item="vo" key="key"}
+                <label><input name="row[status]" type="radio" value="{$key|htmlentities}" {in name="key" value="$row.status"}checked{/in}> {$vo|htmlentities}</label>
+                {/foreach}
+            </div>
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="control-label col-xs-12 col-sm-2">{:__('Weigh')}:</label>
+        <div class="col-xs-12 col-sm-8">
+            <input id="c-weigh" class="form-control" name="row[weigh]" type="number" value="{$row.weigh|htmlentities}">
+        </div>
+    </div>
+    <div class="form-group layer-footer">
+        <label class="control-label col-xs-12 col-sm-2"></label>
+        <div class="col-xs-12 col-sm-8">
+            <button type="submit" class="btn btn-success btn-embossed disabled">{:__('OK')}</button>
+            <button type="reset" class="btn btn-default btn-embossed">{:__('Reset')}</button>
+        </div>
+    </div>
+</form>

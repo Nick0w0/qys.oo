@@ -1,0 +1,187 @@
+.flex_layout{display: flex; align-items: center; flex-wrap: wrap;}
+.flex_between{ display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between;}
+.nodata{padding: 50rpx 30rpx;text-align: center;color: #999;font-size: 24rpx;text-align: center;background: #fff;}
+.submit_btn{padding: 30upx 85upx; margin-top: 20upx;}
+.submit_btn button{width: 100%; height: 80upx; line-height: 80upx; border-radius: 80upx; background: rgba(36,255,255,0.2); font-size: 30upx; color: #fff;}
+a{text-decoration: none;}
+.noresult{ color: #fff; text-align: center; font-size: 24upx;}
+
+/*弹窗样式*/
+    .Appointment_failed{position: fixed; left: 60upx; right: 60upx; top: 50%; transform: translateY(-50%); background: #fff; border-radius: 10px; overflow: hidden; z-index: 100;}
+    .notice_title{color: #fff; font-size: 30upx; text-align: center; padding: 30upx; background: #4a85b2;}
+    .notice_content{padding: 30upx;}
+    .notice_item{padding: 15upx 0;}
+    .notice_item view{color: #333; font-size: 30upx;}
+    .notice_item view{color: #333; font-size: 24upx;}
+    .notice_btn{padding-bottom: 30upx;}
+    .notice_btn button{width: 450upx; height: 75upx; line-height: 75upx; border-radius: 75upx; background: #4a85b2; color: #fff; display: block; margin: 0 auto;}
+  .ornament{position: relative;}
+    .ornament>image{width: 100%; height: 257upx; display: block;}
+    .ornament_pos{position: absolute; width: 114upx; height: 114upx; left: 50%; top: 50%; transform: translate(-50%,-50%);}
+    .ornament_pos image{width: 114upx; height: 114upx; display: block;}
+    .ornament_delete{position: absolute; padding: 20upx; top: 0upx; right: 0upx; width: 70upx; height: 70upx;}
+    .ornament_delete i{display: block; font-size: 30upx;}
+    .ornament_delete image{width: 30upx; height: 30upx; display: block;}
+    .ornament_title{color: #4A85B2; font-size: 36upx; text-align: center; margin-top: 60upx;}
+    .ornament_text{color: #999; font-size: 30upx; text-align: center; margin-top: 30upx; margin-bottom: 60upx; padding: 0 30upx;}
+/*弹窗样式end*/
+    .pull-up {
+        width: 100%;
+        margin-bottom: 20upx;
+        text-align: center;
+        height: 80upx;
+        color: #c1c1c1;
+    }
+    .rect-text {
+        height: 100%;
+        line-height: 80upx;
+    }
+    .rect-wrap {
+        margin: 0 auto;
+        width: 100upx;
+        height: 60upx;
+        text-align: center;
+        font-size: 8upx;
+        margin-top: 8upx;
+    }
+    .rect-wrap .rect {
+        background-color: #7ad237;
+    height: 100%;
+    width: 6upx;
+    display: inline-block;
+    -webkit-animation: stretchdelay 1.2s infinite ease-in-out;
+    animation: stretchdelay 1.2s infinite ease-in-out;
+    }
+    .rect-wrap .rect {
+        margin: 4upx;
+    }
+    .rect-wrap .rect2 {
+    -webkit-animation-delay: -1.1s;
+    animation-delay: -1.1s;
+  }
+  .rect-wrap .rect3 {
+    -webkit-animation-delay: -1.0s;
+    animation-delay: -1.0s;
+  }
+  .rect-wrap .rect4 {
+    -webkit-animation-delay: -0.9s;
+    animation-delay: -0.9s;
+  }
+  .rect-wrap .rect5 {
+    -webkit-animation-delay: -0.8s;
+    animation-delay: -0.8s;
+  }
+    @keyframes stretchdelay {
+        0%, 40%, 100% {
+            transform: scaleY(0.4);
+            -webkit-transform: scaleY(0.4);
+        }
+        20% {
+            transform: scaleY(1.0);
+            -webkit-transform: scaleY(1.0);
+        }
+    }
+    @-webkit-keyframes stretchdelay {
+        0%, 40%, 100% { -webkit-transform: scaleY(0.4) }
+        20% { -webkit-transform: scaleY(1.0) }
+     }
+/* #ifdef H5 */
+    .positionFixe {
+        padding-top: 90upx;
+    }
+    /* #endif */
+    
+    /* #ifdef MP-WEIXIN */
+    .positionFixe {
+        padding-top: 130upx;
+    }
+    /* #endif */
+    .positionFixe{position: fixed; left: 0; top: 0; width: 100%; height: 100%; z-index: -1; box-sizing: border-box; background: #4a85b2;}
+    .positionFixe image{display: block; width: 100%; height: 1108upx;}
+
+/*iconfont文件*/
+@font-face {
+  font-family: 'iconfont';  /* project id 1340048 */
+  src: url('//at.alicdn.com/t/font_1340048_2mrk0i19u8d.eot');
+  src: url('//at.alicdn.com/t/font_1340048_2mrk0i19u8d.eot?#iefix') format('embedded-opentype'),
+  url('//at.alicdn.com/t/font_1340048_2mrk0i19u8d.woff2') format('woff2'),
+  url('//at.alicdn.com/t/font_1340048_2mrk0i19u8d.woff') format('woff'),
+  url('//at.alicdn.com/t/font_1340048_2mrk0i19u8d.ttf') format('truetype'),
+  url('//at.alicdn.com/t/font_1340048_2mrk0i19u8d.svg#iconfont') format('svg');
+}
+
+.iconfont {
+  font-family: "iconfont" !important;
+  font-size: 16px;   
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-jinru:before {
+  content: "\e615";
+}
+
+.icon-zhuangtai:before {
+  content: "\e634";
+}
+
+.icon-icon:before {
+  content: "\e630";
+}
+
+.icon-right:before {
+  content: "\e63b";
+}
+
+.icon-hide:before {
+  content: "\e600";
+}
+
+.icon-address:before {
+  content: "\e62a";
+}
+
+.icon-dianhua:before {
+  content: "\e61b";
+}
+
+.icon-dianhua1:before {
+  content: "\e601";
+}
+
+.icon-biao:before {
+  content: "\e6d5";
+}
+
+.icon-rili:before {
+  content: "\e642";
+}
+
+.icon-add:before {
+  content: "\e6ab";
+}
+
+.icon-liaotian:before {
+  content: "\e610";
+}
+
+.icon-fabu:before {
+  content: "\e60d";
+}
+
+.icon-aiqingmiao:before {
+  content: "\e602";
+}
+
+.icon-shezhi:before {
+  content: "\e72c";
+}
+
+.icon-date:before {
+  content: "\e607";
+}
+
+.icon-zxt:before {
+  content: "\e627";
+}

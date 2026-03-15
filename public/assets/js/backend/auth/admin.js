@@ -1,0 +1,65 @@
+﻿define(['jquery', 'bootstrap', 'backend', 'table', 'form'], function ($, undefined, Backend, Table, Form) {
+
+    var Controller = {
+        index: function () {
+            Table.api.init({
+                extend: {
+                    index_url: 'auth/admin/index',
+                    add_url: 'auth/admin/add',
+                    edit_url: 'auth/admin/edit',
+                    del_url: 'auth/admin/del',
+                    multi_url: 'auth/admin/multi'
+                }
+            });
+
+            var table = $('#table');
+
+            table.on('post-body.bs.table', function () {
+                $('tbody tr[data-index]', this).each(function () {
+                    if (parseInt($('td:eq(1)', this).text()) === Config.admin.id) {
+                        $('input[type=checkbox]', this).prop('disabled', true);
+                    }
+                });
+            });
+
+            table.bootstrapTable({
+                url: $.fn.bootstrapTable.defaults.extend.index_url,
+                columns: [
+                    [
+                        {field: 'state', checkbox: true},
+                        {field: 'id', title: 'ID'},
+                        {field: 'username', title: __('Username')},
+                        {field: 'nickname', title: __('Nickname')},
+                        {field: 'groups_text', title: __('Group'), operate: false, formatter: Table.api.formatter.label},
+                        {field: 'school_name', title: __('School_name'), operate: 'LIKE'},
+                        {field: 'email', title: __('Email')},
+                        {field: 'mobile', title: __('Mobile')},
+                        {field: 'status', title: __('Status'), searchList: {'normal': __('Normal'), 'hidden': __('Hidden')}, formatter: Table.api.formatter.status},
+                        {field: 'logintime', title: __('Login time'), formatter: Table.api.formatter.datetime, operate: 'RANGE', addclass: 'datetimerange', sortable: true},
+                        {
+                            field: 'operate',
+                            title: __('Operate'),
+                            table: table,
+                            events: Table.api.events.operate,
+                            formatter: function (value, row, index) {
+                                if (row.id === Config.admin.id) {
+                                    return '';
+                                }
+                                return Table.api.formatter.operate.call(this, value, row, index);
+                            }
+                        }
+                    ]
+                ]
+            });
+
+            Table.api.bindevent(table);
+        },
+        add: function () {
+            Form.api.bindevent($('form[role=form]'));
+        },
+        edit: function () {
+            Form.api.bindevent($('form[role=form]'));
+        }
+    };
+    return Controller;
+});
