@@ -7,7 +7,7 @@ use app\common\model\Config as ConfigModel;
 use think\Db;
 
 /**
- * 内容中心-屏蔽词列表
+ * 内容中心-屏蔽词管理
  *
  * @icon fa fa-ban
  */

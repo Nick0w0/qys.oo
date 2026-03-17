@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'Title'                    => '屏蔽词列表',
+    'Title'                    => '屏蔽词管理',
     'Word'                     => '屏蔽词',
     'Word placeholder'         => '请输入单个屏蔽词，例如：诈骗',
     'Remark'                   => '备注',

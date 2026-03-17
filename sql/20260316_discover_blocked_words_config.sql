@@ -1,4 +1,4 @@
--- 2026-03-16 内容中心屏蔽词列表正式版
+-- 2026-03-16 内容中心屏蔽词管理正式版
 
 CREATE TABLE IF NOT EXISTS `fa_discover_blocked_word` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -14,14 +14,14 @@ CREATE TABLE IF NOT EXISTS `fa_discover_blocked_word` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='内容中心屏蔽词';
 
 INSERT INTO `fa_config` (`name`, `group`, `title`, `tip`, `type`, `visible`, `value`, `content`, `rule`, `extend`, `setting`)
-SELECT 'discover_blocked_words', 'discover', 'Discover blocked words', '旧版屏蔽词配置兼容项，已迁移到内容中心屏蔽词列表页维护', 'text', '', '', '', '', '', ''
+SELECT 'discover_blocked_words', 'discover', 'Discover blocked words', '旧版屏蔽词配置兼容项，已迁移到内容中心屏蔽词管理页维护', 'text', '', '', '', '', '', ''
 FROM DUAL
 WHERE NOT EXISTS (
     SELECT 1 FROM `fa_config` WHERE `name` = 'discover_blocked_words'
 );
 
 UPDATE `fa_auth_rule`
-SET `title` = '屏蔽词列表'
+SET `title` = '屏蔽词管理'
 WHERE `name` = 'discover/review';
 
 INSERT INTO `fa_auth_rule` (`type`,`pid`,`name`,`title`,`icon`,`url`,`condition`,`remark`,`ismenu`,`menutype`,`extend`,`py`,`pinyin`,`createtime`,`updatetime`,`weigh`,`status`)
