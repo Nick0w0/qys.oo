@@ -16,6 +16,7 @@ class School extends Backend
         parent::_initialize();
         $this->model = new \app\admin\model\discover\School;
         $this->view->assign('statusList', $this->model->getStatusList());
+        $this->view->assign('hasSchoolThemeFields', $this->hasSchoolThemeFields());
     }
 
     protected function hasTable($table)
@@ -27,6 +28,31 @@ class School extends Backend
             self::$schemaCache[$key] = !empty($result);
         }
         return self::$schemaCache[$key];
+    }
+
+    protected function hasColumn($table, $column)
+    {
+        $key = 'column:' . $table . ':' . $column;
+        if (!array_key_exists($key, self::$schemaCache)) {
+            if (!$this->hasTable($table)) {
+                self::$schemaCache[$key] = false;
+            } else {
+                $fullTable = config('database.prefix') . $table;
+                $result = Db::query("SHOW COLUMNS FROM `{$fullTable}` LIKE '" . addslashes($column) . "'");
+                self::$schemaCache[$key] = !empty($result);
+            }
+        }
+        return self::$schemaCache[$key];
+    }
+
+    protected function hasSchoolThemeFields()
+    {
+        foreach (['logo', 'header_bg_image', 'theme_primary', 'theme_secondary', 'theme_text_color'] as $field) {
+            if (!$this->hasColumn('school', $field)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     protected function ensureSchema()

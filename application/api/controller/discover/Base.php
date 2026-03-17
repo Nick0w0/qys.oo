@@ -93,17 +93,123 @@ class Base extends Api
         return $this->hasColumn('discover', 'audit_status') && $this->hasColumn('discover', 'is_top');
     }
 
+    protected function getDiscoverBlockedWords()
+    {
+        if ($this->hasTable('discover_blocked_word')) {
+            $rows = Db::name('discover_blocked_word')
+                ->where('status', 'normal')
+                ->order('weigh desc,id desc')
+                ->column('word');
+            $words = [];
+            foreach ($rows as $row) {
+                $row = trim((string)$row);
+                if ($row !== '') {
+                    $words[$row] = $row;
+                }
+            }
+            return array_values($words);
+        }
+        $raw = config('site.discover_blocked_words');
+        if (is_array($raw)) {
+            $raw = implode(PHP_EOL, $raw);
+        }
+        $raw = trim((string)$raw);
+        if ($raw === '') {
+            return [];
+        }
+        $items = preg_split('/[\r\n,，;；]+/u', $raw);
+        $words = [];
+        foreach ($items as $item) {
+            $item = trim((string)$item);
+            if ($item !== '') {
+                $words[$item] = $item;
+            }
+        }
+        return array_values($words);
+    }
+
+
+
+    protected function normalizeDiscoverModerationText($text)
+    {
+        return preg_replace('/\s+/u', '', trim((string)$text));
+    }
+
+    protected function containsDiscoverBlockedWord($text, $blockedWord)
+    {
+        $text = (string)$text;
+        $blockedWord = trim((string)$blockedWord);
+        if ($text === '' || $blockedWord === '') {
+            return false;
+        }
+        if (function_exists('mb_stripos')) {
+            return mb_stripos($text, $blockedWord, 0, 'UTF-8') !== false;
+        }
+        return stripos($text, $blockedWord) !== false;
+    }
+
+    protected function assertDiscoverPublishAllowed($data)
+    {
+        $blockedWords = $this->getDiscoverBlockedWords();
+        if (empty($blockedWords)) {
+            return;
+        }
+        $scanFields = ['title', 'description', 'content'];
+        foreach ($scanFields as $field) {
+            $text = isset($data[$field]) ? (string)$data[$field] : '';
+            if ($text === '') {
+                continue;
+            }
+            $normalizedText = $this->normalizeDiscoverModerationText($text);
+            foreach ($blockedWords as $blockedWord) {
+                if ($this->containsDiscoverBlockedWord($text, $blockedWord) || $this->containsDiscoverBlockedWord($normalizedText, $blockedWord)) {
+                    $this->error('内容包含敏感违规信息，请修改后再发布');
+                }
+            }
+        }
+    }
+
+    protected function getSchoolSelectFields()
+    {
+        $fields = ['id', 'name', 'short_name', 'province', 'city', 'area', 'address', 'latitude', 'longitude'];
+        $optionalFields = ['logo', 'header_bg_image', 'theme_primary', 'theme_secondary', 'theme_text_color'];
+        foreach ($optionalFields as $field) {
+            if ($this->hasColumn('school', $field)) {
+                $fields[] = $field;
+            }
+        }
+        return $fields;
+    }
+
+    protected function normalizeSchoolInfo($schoolInfo)
+    {
+        if (!$schoolInfo) {
+            return null;
+        }
+        foreach (['logo', 'header_bg_image'] as $field) {
+            $schoolInfo[$field] = isset($schoolInfo[$field]) ? (string)$schoolInfo[$field] : '';
+            if ($schoolInfo[$field] !== '') {
+                $schoolInfo[$field] = cdnUrl($schoolInfo[$field], true);
+            }
+        }
+        foreach (['theme_primary', 'theme_secondary', 'theme_text_color'] as $field) {
+            $schoolInfo[$field] = isset($schoolInfo[$field]) ? trim((string)$schoolInfo[$field]) : '';
+        }
+        return $schoolInfo;
+    }
+
     protected function getSchoolInfoById($schoolId)
     {
         $schoolId = (int)$schoolId;
         if ($schoolId <= 0 || !$this->hasSchoolTable()) {
             return null;
         }
-        return Db::name('school')
+        $row = Db::name('school')
             ->where('id', $schoolId)
             ->where('status', 'normal')
-            ->field('id,name,short_name,province,city,area,address,latitude,longitude')
+            ->field(implode(',', $this->getSchoolSelectFields()))
             ->find();
+        return $this->normalizeSchoolInfo($row);
     }
 
     protected function appendSchoolInfo($userInfo)
@@ -260,28 +366,33 @@ class Base extends Api
           }
           $discoverList=$query
                        ->order('discover.createtime','desc')
-                       ->field('discover.id,discover.content as content,discover.coverimage as image_url,discover.coverimages as image_urlLists,discover.tag_ids as type,discover.title,discover.description as text,discover.user_id,discover.school_id,discover.favorNum,discover.commentNum,user.nickname,user.avatar')
+                       ->field('discover.id,discover.content as content,discover.coverimage as image_url,discover.coverimages as image_urlLists,discover.tag_ids as type,discover.title,discover.description as text,discover.user_id,discover.school_id,discover.favorNum,discover.commentNum,discover.createtime,user.nickname,user.avatar')
                        ->paginate($limit)
 			           ->each(function($lists, $key){
-			               $lists['image_url']=cdnUrl($lists->image_url,true);
-                           $imageList = !empty($lists->image_urlLists) ? explode(',',$lists->image_urlLists) : explode(',',$lists->image_url);
+			               $lists['image_url'] = !empty($lists->image_url) ? cdnUrl($lists->image_url, true) : '';
+                           $imageList = !empty($lists->image_urlLists)
+                               ? explode(',', $lists->image_urlLists)
+                               : (!empty($lists->image_url) ? explode(',', $lists->image_url) : []);
 			               $lists['type']='image';
                            foreach ($imageList as $k => $v) {
+                             if ($v === null || $v === '') {
+                                 unset($imageList[$k]);
+                                 continue;
+                             }
                              $imageList[$k]=cdnUrl($v,true);
                              $picNames = strrchr($v,'.');
                              if(in_array($picNames, array('.mp4','.avi'))){
                                  $lists['type']='video';
                               }
                           }
+                          $imageList = array_values($imageList);
                           $lists['image_urlLists']=implode(',',$imageList);
+                          $lists['createtime'] = isset($lists['createtime']) ? (int)$lists['createtime'] : 0;
                           if($this->is_url($lists->avatar)==0){
                              $lists['avatar']=letter_avatar($lists->nickname);
                           }
                           if($this->is_url($lists->avatar)==2){
                              $lists['avatar']=cdnUrl($lists->avatar,true);
-                          }
-                          if(strlen($lists->nickname)>8){
-                             $lists['nickname']=mb_substr($lists->nickname, 0, 6, 'utf-8').'...';
                           }
                           $endt='';
                           if(mb_strlen($lists->title)>50){
@@ -373,7 +484,7 @@ class Base extends Api
              $typeData[$key]['id']=$value['id'];
              $typeData[$key]['label']=$value['name'];
            }
-           $selectedData=['key'=>0,'list-key'=>'typeList-0','id'=>'0','label'=>'精选'];
+          $selectedData=['key'=>0,'list-key'=>'typeList-0','id'=>'0','label'=>'最新'];
            array_unshift($typeData,$selectedData);
          }
          if($type==-1){
@@ -478,6 +589,11 @@ class Base extends Api
          if ($this->hasDiscoverSchoolSchema()) {
             $data['school_id'] = $this->getScopeSchoolId(0, true);
          }
+         if ($this->hasDiscoverModerationSchema()) {
+            $data['audit_status'] = 'approved';
+            $data['audit_admin_id'] = 0;
+            $data['audit_time'] = time();
+         }
          $newDiscover=$this->discoverModel->allowField(true)->save($data);
          return $newDiscover;
     }
@@ -572,11 +688,13 @@ class Base extends Api
     $type=$this->request->request('type')?$this->request->request('type'):0;
     $discover_id=$this->request->request('discover_id')?$this->request->request('discover_id'):0;
     $content=$this->request->request('content')?$this->request->request('content'):'';
+    $content=trim((string)$content);
     $comment_id=$this->request->request('comment_id')?$this->request->request('comment_id'):0;
     $parent_id=$this->request->request('parent_id')?$this->request->request('parent_id'):0;
-    if($type==0 || $content==''){
+    if($type==0 || $content===''){
       $this->error('参数错误');
     }
+    $this->assertDiscoverPublishAllowed(['content' => $content]);
     $scopeSchoolId = $this->getScopeSchoolId(0, true);
     $discover = $this->assertDiscoverAccessible($discover_id, $scopeSchoolId, true, '该条动态不存在或无权访问');
     $discover_id = (int)$discover['id'];

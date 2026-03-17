@@ -1,5 +1,5 @@
-<template>
-	<view>
+﻿<template>
+	<view :style="themeVarsStyle">
 			<cu-custom bgColor="bg-gradual-purple" :isBack="true">
 				<block slot="backText">返回</block>
 				<block slot="content">{{name}}</block>
@@ -55,15 +55,15 @@
 				this.type=option.type;
 				
 				if(this.type==1){
-					this.name="关注我的"
+					this.name="关注我的人"
 					uni.setNavigationBarTitle({
-						title:"关注我的"
+						title:"关注我的人"
 					})
 				}
 				if(this.type==2){
-					this.name="我关注的"
+					this.name="我关注的作者"
 					uni.setNavigationBarTitle({
-						title:"我关注的"
+						title:"我关注的作者"
 					})
 				}
 				if(this.type==3){
@@ -208,3 +208,4 @@
 		content: "\e6db";
 	}
 </style>
+

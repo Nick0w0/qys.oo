@@ -1,5 +1,5 @@
-<template>
-	<view class="content">
+﻿<template>
+	<view class="content" :style="themeVarsStyle">
 	  <cu-custom bgColor="bg-gradual-purple" :isBack="true"><block slot="backText">返回</block><block slot="content">登录</block></cu-custom>
 		<block v-if="ismobile">
 			<view class="">
@@ -72,6 +72,7 @@
 <script>
 	var _this;
 	import {baseLogo} from '../../config/config.js';
+	import { hasBoundSchool, refreshWechatCode, getWechatReadyState, requestWechatLogin } from '../../config/wechat-auth.js';
 	export default {
 		data() {
 			return {
@@ -95,26 +96,56 @@
 		},
 		onShow() {
 			this.user = this.$common.userInfo();
-			console.log("this.user: ",this.user);
-			if (typeof(this.user)== "undefined" || this.user=='' ||  this.user==null) {
-				
-			}else{
-				this.$common.navigateTo('index');
+			if (typeof(this.user)== "undefined" || this.user=='' || this.user==null) {
+				// #ifdef MP-WEIXIN
+				this.wxLogin();
+				// #endif
+				return;
 			}
-			// #ifdef MP-WEIXIN
-			this.wxLogin();
-			// #endif
-			
+			this.routeAfterLoginSuccess(this.user);
 		},
 		methods: {
+			routeAfterLoginSuccess(userInfo) {
+				this.user = userInfo || this.$db.get('user') || null;
+				if (!this.user || !this.user.id) {
+					return;
+				}
+				this.$api.refreshUser({}, res => {
+					if (res.code === 1 && res.data && res.data.user) {
+						this.user = res.data.user;
+						this.refreshAppTheme(this.user);
+						try {
+							this.$db.set('auth', res.data.auth || {});
+							this.$db.set('user', res.data.user || {});
+						} catch (error) {}
+					}
+					if (hasBoundSchool(this.user)) {
+						uni.switchTab({
+							url: '/pages/index/index'
+						});
+						return;
+					}
+					uni.navigateTo({
+						url: '/pages/plugin/index'
+					});
+				});
+			},
+			showWechatDeniedModal() {
+				uni.showModal({
+					title: '用户授权失败',
+					showCancel: false,
+					content: '请重新授权，或先使用手机号登录',
+					success: () => {
+						this.changMobileLogin();
+					}
+				})
+			},
 			wxLogin(){
-				wx.login({
-				    success:(res) => {
-				        this.code = res.code;
-				    },
-					fail: function (error) {
-					        console.log('login failed ' + error);
-					      }
+				refreshWechatCode((success, code) => {
+					this.code = success ? code : '';
+					if (!success) {
+						console.log('login failed');
+					}
 				});
 			},
 			//切换微信登录
@@ -153,22 +184,19 @@
 						password: _this.password,
 					 },
 					data => {
-						//console.log(data);
 						if (data.code == 1) {
 							_this.loading = false;
-							//console.log(data);
-							_this.$common.successToShow(data.msg,function(){
-								_this.$common.navigateTo('index');
-							});
 							try {
 								_this.$db.set('upload', 1)
 								_this.$db.set('login', 1)
 								_this.$db.set('token', data.data.userinfo.token)
 								_this.$db.set('user', data.data.userinfo)	
-								_this.$db.set('auth', data.data.auth)							
+								_this.$db.set('auth', data.data.auth)
+								_this.refreshAppTheme(data.data.userinfo)							
 							} catch (e) {}
-							
-							
+							_this.$common.successToShow(data.msg,function(){
+								_this.routeAfterLoginSuccess(data.data.userinfo);
+							});
 						}else{
 							_this.loading = false;
 							uni.showToast({
@@ -183,151 +211,47 @@
 			},
 			//小程序登录（微信登录）
 			onGotUserInfo() {
-				this.$common.errorToShow('正在登录中...');
-				var platform='wechat';
-				uni.login({
-					success: loginRes => {
-						uni.hideLoading();
-						console.log('第一次登录'+loginRes.code)
-						if (loginRes.code) {
-							uni.getUserInfo({
-								withCredentials: true,
-								success: res => {
-									console.log('用户信息'+loginRes.code+res.encryptedData+res.iv+res.rawData+res.signature)
-									_this.$api.third(
-										{
-											code: loginRes.code,
-											platform:platform,
-											encrypted_data: res.encryptedData,
-											iv: res.iv,
-											raw_data: res.rawData,
-											signature: res.signature
-										},
-										data => {
-											console.log(data);
-											//console.log(data.data.userinfo) 
-											var res=data.data;
-											if (data.code == 1) {
-												this.$common.successToShow('登录成功!');
-												try {
-													this.$db.set('upload',1)
-													this.$db.set('login', 1)
-													this.$db.set('auth',res.auth)
-													this.$db.set('user', res.userinfo)						
-												} catch (e) {
-													console.log("e: ",e);
-												}
-												//扫码进来的，如果是员工认证，group_id=2，如果是认证普通用户group=1
-												if(data.data.userinfo.group_id==0){
-													uni.navigateTo({
-														url: '../user/index?group_id='+_this.group_id
-													});
-												}else{
-													uni.switchTab({
-														url: '../index/index'
-													});
-												}
-												
-											}
-										}
-									);
-								},
-								fail: (res) => {
-									if (res.errMsg == "getUserInfo:cancel" || res.errMsg == "getUserInfo:fail auth deny") {
-										uni.showModal({
-											title: '用户授权失败',
-											showCancel: false,
-											content: '请点击重新授权，如果未弹出授权，请尝试长按删除小程序，重新进入!',
-											success: function(res) {
-												if (res.confirm) {
-													console.log('用户点击确定')
-												}
-											}
-										})
-									}
-
-								}
-							})
-						}
-					}
-				})
+				this.onGetUserProfile();
 			},
 			//改版后小程序登录规则
 			//小程序登录
 			onGetUserProfile() {
-				// uni.showLoading({
-				// 	title:"正在登录中..."
-				// })
-				var platform='wechat';
-				var that=this;
-				var fid=uni.getStorageSync('parentid')?uni.getStorageSync('parentid'):''; 
-				uni.getUserProfile({
-					 desc: '用于完善会员资料', // 声明获取用户个人信息后的用途，后续会展示在弹窗中，请谨慎填写
-					success: res => {
-						console.log(res)
-						_this.$api.third(
-							{
-								code: _this.code,
-								platform:platform,
-								encrypted_data: res.encryptedData,
-								iv: res.iv,
-								raw_data: res.rawData,
-								signature: res.signature
-							},
-							data => {
-								console.log(data);
-								//console.log(data.data.userinfo) 
-								var res=data.data;
-								if (data.code == 1) {
-									this.$common.successToShow('登录成功!');
-									try {
-										this.$db.set('upload',1)
-										this.$db.set('login', 1)
-										this.$db.set('auth',res.auth)
-										this.$db.set('user', res.userinfo)						
-									} catch (e) {
-										console.log("e: ",e);
-									}
-									uni.navigateTo({
-										url: '../index/index'
-									});
-									
-								}else{
-									_this.wxLogin();
-								}
-							}
-						);
-					},
-					fail: (res) => {
-						console.log("res: ",res);
-						_this.wxLogin();//重新获取登录code
-						uni.hideLoading()
-						if (res.errMsg == "getUserInfo:cancel" || res.errMsg == "getUserInfo:fail auth deny") {
-							uni.showModal({
-								title: '用户授权失败',
-								showCancel: false,
-								content: '请点击重新授权，如果未弹出授权，请尝试长按删除小程序，重新进入!',
-								success: function(res) {
-									if (res.confirm) {
-										console.log('用户点击确定')
-										uni.navigateBack()
-									}
-								}
-							})
-						}
-							
+				const readyState = getWechatReadyState();
+				if (!readyState.ok) {
+					uni.showToast({
+						icon: 'none',
+						title: readyState.message
+					});
+					this.changMobileLogin();
+					return;
+				}
+				if (!_this.code) {
+					_this.wxLogin();
+					uni.showToast({
+						icon: 'none',
+						title: '微信登录初始化中，请再试一次'
+					});
+					return;
+				}
+				requestWechatLogin(this, _this.code, (result) => {
+					if (result.needRefreshCode) {
+						_this.wxLogin();
 					}
+					if (!result.ok) {
+						if (result.canceled) {
+							this.showWechatDeniedModal();
+							return;
+						}
+						uni.showToast({
+							icon: 'none',
+							title: result.message || '微信登录失败'
+						});
+						return;
+					}
+					this.$common.successToShow('登录成功!', () => {
+						this.routeAfterLoginSuccess(result.userinfo || null);
+					});
 				})
-				// uni.login({
-				// 	success: loginRes => {
-				// 		uni.hideLoading();
-				// 		console.log('第一次登录'+loginRes.code)
-				// 		if (loginRes.code && loginRes.code!='') {
-				// 			console.log('2222222222222222222')
-							
-				// 		}
-				// 	}
-				// })
 			}
 		}
 	}
@@ -447,3 +371,5 @@
 		padding: 25rpx;
 	}
 </style>
+
+

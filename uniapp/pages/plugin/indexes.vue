@@ -1,5 +1,5 @@
-<template>
-	<view>
+﻿<template>
+	<view :style="themeVarsStyle">
 		<cu-custom bgColor="bg-gradual-purple" :isBack="true"><block slot="backText">返回</block>
 			<block slot="content">定位城市</block>
 		</cu-custom>
@@ -195,3 +195,4 @@
 		font-size: 48upx;
 	}
 </style>
+

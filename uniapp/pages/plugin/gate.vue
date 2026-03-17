@@ -1,148 +1,241 @@
-<template>
-  <view class="gate-page">
-    <cu-custom bgColor="bg-gradual-purple">
+﻿<template>
+  <view class="gate-page" :style="themeVarsStyle">
+    <cu-custom bgColor="bg-white">
       <block slot="backText">返回</block>
       <block slot="content">欢迎加入</block>
     </cu-custom>
-    <view class="gate-hero bg-gradual-purple">
-      <view class="gate-title">先确认你的学校</view>
-      <view class="gate-subtitle">平台按学校隔离内容。完成登录并绑定学校后，才会展示本校帖子、评论、互动与消息。</view>
-    </view>
-    <view class="gate-card">
-      <view class="gate-step">
-        <view class="gate-step-index">1</view>
-        <view class="gate-step-content">
-          <view class="gate-step-title">登录账号</view>
-          <view class="gate-step-desc">先完成登录，系统才能识别你的身份和学校归属。</view>
-        </view>
+
+    <view class="gate-body">
+      <view class="gate-logo-circle">
+        <text class="cuIcon-homefill"></text>
       </view>
-      <view class="gate-step">
-        <view class="gate-step-index">2</view>
-        <view class="gate-step-content">
-          <view class="gate-step-title">选择并绑定学校</view>
-          <view class="gate-step-desc">绑定后不可自行修改，如需变更请联系管理员处理。</view>
-        </view>
+
+      <view class="gate-title">请选择学校后开始使用</view>
+
+      <view class="gate-action">
+        <button class="cu-btn bg-purple round gate-btn-primary" @tap="handlePrimary">{{ buttonText }}</button>
       </view>
-      <view class="gate-tip">{{ buttonText === '去选择学校' ? '你已登录，下一步只需绑定学校。' : '未登录时暂不开放内容浏览。' }}</view>
-      <button class="cu-btn bg-purple round gate-btn" @tap="handlePrimary">{{ buttonText }}</button>
-      <button class="cu-btn line-purple round gate-btn-secondary" @tap="goUserCenter">去我的页</button>
     </view>
   </view>
 </template>
 
 <script>
+import { hasBoundSchool, refreshWechatCode, getWechatReadyState, requestWechatLogin } from '../../config/wechat-auth.js';
+
 export default {
   data() {
     return {
       user: null,
-      buttonText: '先登录并选择学校'
+      buttonText: '登录并选择学校',
+      code: '',
+      wechatLoading: false
     }
   },
   onShow() {
     this.user = this.$db.get('user') || null;
     if (this.user && this.user.id) {
-      if (this.user.school_id && String(this.user.school_locked) === '1') {
-        uni.switchTab({ url: '/pages/index/index' });
-        return;
-      }
-      this.buttonText = '去选择学校';
+      this.syncUserState();
       return;
     }
-    this.buttonText = '先登录并选择学校';
+    this.updateButtonText();
+    // #ifdef MP-WEIXIN
+    this.refreshWxCode();
+    // #endif
   },
   methods: {
-    handlePrimary() {
+    syncUserState() {
+      this.$api.refreshUser({}, res => {
+        if (res.code === 1 && res.data) {
+          this.user = res.data.user || this.user;
+          this.refreshAppTheme(this.user);
+          try {
+            this.$db.set('auth', res.data.auth || {});
+            this.$db.set('user', res.data.user || {});
+          } catch (error) {}
+          if (this.user && this.user.id && hasBoundSchool(this.user)) {
+            this.goHome();
+            return;
+          }
+        }
+        this.updateButtonText();
+        // #ifdef MP-WEIXIN
+        this.refreshWxCode();
+        // #endif
+      });
+    },
+    updateButtonText() {
       if (this.user && this.user.id) {
-        this.$common.navigateTo('/pages/plugin/index');
+        this.buttonText = '选择学校';
         return;
       }
-      this.$common.navigateTo('/pages/user/login');
+      this.buttonText = '登录并选择学校';
     },
-    goUserCenter() {
-      uni.switchTab({ url: '/pages/user/index' });
-    }
+    goHome() {
+      uni.switchTab({ url: '/pages/index/index' });
+    },
+    goBindSchool() {
+      uni.navigateTo({ url: '/pages/plugin/index' });
+    },
+    goPhoneLogin() {
+      uni.navigateTo({ url: '/pages/user/login' });
+    },
+    routeAfterLogin(userInfo) {
+      this.user = userInfo || this.$db.get('user') || null;
+      if (!this.user || !this.user.id) {
+        this.updateButtonText();
+        return;
+      }
+      this.$api.refreshUser({}, res => {
+        if (res.code === 1 && res.data && res.data.user) {
+          this.user = res.data.user;
+          this.refreshAppTheme(this.user);
+          try {
+            this.$db.set('auth', res.data.auth || {});
+            this.$db.set('user', res.data.user || {});
+          } catch (error) {}
+        }
+        if (hasBoundSchool(this.user)) {
+          this.goHome();
+          return;
+        }
+        this.goBindSchool();
+      });
+    },
+        refreshWxCode(done) {
+      refreshWechatCode((success, code) => {
+        this.code = success ? code : '';
+        if (typeof done === 'function') {
+          done(success);
+        }
+      });
+    },
+    fallbackToPhoneLogin(message) {
+      if (message) {
+        uni.showToast({
+          icon: 'none',
+          title: message,
+          duration: 1800
+        });
+      }
+      setTimeout(() => {
+        this.goPhoneLogin();
+      }, message ? 300 : 0);
+    },
+    handleWechatLogin() {
+      if (this.wechatLoading) {
+        return;
+      }
+      const readyState = getWechatReadyState();
+      if (!readyState.ok) {
+        this.fallbackToPhoneLogin(readyState.message);
+        return;
+      }
+      if (this.code) {
+        this.requestWechatProfile();
+        return;
+      }
+      this.refreshWxCode((success) => {
+        if (!success) {
+          uni.showToast({
+            icon: 'none',
+            title: '微信登录初始化失败，请重试'
+          });
+          return;
+        }
+        this.requestWechatProfile();
+      });
+    },
+    requestWechatProfile() {
+      this.wechatLoading = true;
+      requestWechatLogin(this, this.code, (result) => {
+        this.wechatLoading = false;
+        if (!result.ok) {
+          if (result.needRefreshCode) {
+            this.refreshWxCode();
+          }
+          if (result.message) {
+            uni.showToast({
+              icon: 'none',
+              title: result.message
+            });
+          }
+          return;
+        }
+        uni.showToast({
+          title: '登录成功',
+          icon: 'success'
+        });
+        this.routeAfterLogin(result.userinfo || null);
+      });
+    },
+    handlePrimary() {
+      if (this.user && this.user.id) {
+        this.goBindSchool();
+        return;
+      }
+      this.goPhoneLogin();
+    },
   }
 }
 </script>
 
 <style lang="scss">
+page {
+  height: 100%;
+  overflow: hidden;
+  background: #f7f8fc;
+}
 .gate-page {
   min-height: 100vh;
-  background: #f6f7fb;
+  background: #f7f8fc;
 }
-.gate-hero {
-  padding: 48rpx 32rpx 80rpx;
+.gate-body {
+  min-height: calc(100vh - 180rpx);
+  padding: 80rpx 40rpx 96rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.gate-logo-circle {
+  width: 132rpx;
+  height: 132rpx;
+  border-radius: 50%;
+  background: #efe8ff;
+  border: 2rpx solid #e0d2ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12rpx 28rpx rgba(123, 44, 255, 0.10);
+  text {
+    font-size: 54rpx;
+    color: #7b2cff;
+  }
 }
 .gate-title {
-  color: #fff;
-  font-size: 44rpx;
+  margin-top: 40rpx;
+  color: #1f1f1f;
+  font-size: 40rpx;
   font-weight: 600;
-}
-.gate-subtitle {
-  margin-top: 18rpx;
-  color: rgba(255,255,255,0.88);
-  font-size: 28rpx;
-  line-height: 1.7;
-}
-.gate-card {
-  margin: -36rpx 24rpx 0;
-  padding: 36rpx 28rpx;
-  background: #fff;
-  border-radius: 28rpx;
-  box-shadow: 0 14rpx 36rpx rgba(93, 63, 211, 0.08);
-}
-.gate-step {
-  display: flex;
-  align-items: flex-start;
-}
-.gate-step + .gate-step {
-  margin-top: 24rpx;
-}
-.gate-step-index {
-  width: 44rpx;
-  height: 44rpx;
-  line-height: 44rpx;
+  line-height: 1.5;
   text-align: center;
-  border-radius: 50%;
-  background: #7b2cff;
+}
+.gate-action {
+  width: 100%;
+  max-width: 560rpx;
+  margin-top: 56rpx;
+}
+.gate-btn-primary {
+  width: 100%;
+  height: 92rpx;
+  line-height: 92rpx;
+  font-size: 30rpx;
   color: #fff;
-  font-size: 24rpx;
-  font-weight: 600;
-  flex-shrink: 0;
-  margin-right: 20rpx;
+  background: #7b2cff;
 }
-.gate-step-title {
-  color: #222;
-  font-size: 30rpx;
-  font-weight: 600;
-}
-.gate-step-desc {
-  margin-top: 8rpx;
-  color: #666;
-  font-size: 26rpx;
-  line-height: 1.7;
-}
-.gate-tip {
-  margin-top: 30rpx;
-  padding: 20rpx 24rpx;
-  background: #f6efff;
-  color: #6d35d7;
-  font-size: 26rpx;
-  line-height: 1.6;
-  border-radius: 18rpx;
-}
-.gate-btn {
-  margin-top: 28rpx;
-  width: 100%;
-  height: 88rpx;
-  line-height: 88rpx;
-  font-size: 30rpx;
-}
-.gate-btn-secondary {
-  margin-top: 20rpx;
-  width: 100%;
-  height: 84rpx;
-  line-height: 84rpx;
-  font-size: 28rpx;
+.gate-btn-primary[disabled] {
+  opacity: 0.9;
 }
 </style>
+
+

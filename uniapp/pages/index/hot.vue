@@ -1,6 +1,6 @@
 <template>
-	<view>
-		<cu-custom bgColor=" bg-gradual-purple"><block slot="content">关注</block></cu-custom>
+	<view :style="themeVarsStyle">
+		<cu-custom bgColor=" bg-gradual-purple"><block slot="content">关注动态</block></cu-custom>
 
 		<view class="cu-card dynamic" v-for="(item,index) in attentionDataLists" :key="index">
 			<view class="cu-item shadow">
@@ -15,7 +15,7 @@
 							</view>
 						</view>
 						<view class="action">
-							<button class="cu-btn light sm" :data-id='item.id' :data-userid='item.user_id' @tap="doAttentionDataOp" :class="item.isattention?'bg-red':'bg-grey'" data-target="gridModal"><text class="cuIcon-attentionfavorfill" :class="item.isattention?'text-red':'text-grey'"></text></text></button> 
+							<button class="cu-btn light sm feed-follow-btn" :data-id='item.id' :data-userid='item.user_id' @tap="doAttentionDataOp" :class="item.isattention?'bg-red':'bg-grey'" data-target="gridModal"><text class="cuIcon-attentionfavorfill margin-right-xs" :class="item.isattention?'text-red':'text-grey'"></text><text>{{ item.isattention ? '已关注' : '关注' }}</text></button> 
 						</view>
 					</view>
 				</view>
@@ -105,22 +105,27 @@
 		},
 		onLoad() {
 			page=1;
-			this.attentionDataOp();
 		},
 		onShow() {
 			this.user = this.$common.userInfo();
 			console.log("this.user: ",this.user);
 			if (typeof(this.user)== "undefined" || this.user=='' ||  this.user==null) {
 				this.$common.navigateTo('login');
-			}else{
-				this.$api.refreshUser(
-				{},
-				val => {
-					this.user=val.data.user;
-					this.auth=val.data.auth;
-					this.messageCount=val.data.msgCount;
-				})
+				return;
 			}
+			page=1;
+			this.attentionDataLists=[];
+			this.totalPage=0;
+			this.showNoResult=false;
+			this.$api.refreshUser(
+			{},
+			val => {
+				this.user = val.data.user;
+				this.refreshAppTheme(this.user);
+				this.auth=val.data.auth;
+				this.messageCount=val.data.msgCount;
+			})
+			this.attentionDataOp();
 		},
 		onReachBottom() {
 			if(this.totalPage>=page){
@@ -328,4 +333,19 @@
 
 <style>
 
+.feed-follow-btn{
+    min-width: 132rpx;
+    padding: 0 20rpx !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    box-sizing: border-box;
+}
+.feed-follow-btn text{
+    white-space: nowrap;
+}
 </style>
+
+
+

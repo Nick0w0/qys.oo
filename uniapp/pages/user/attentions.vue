@@ -1,5 +1,5 @@
-<template>
-	<view>
+﻿<template>
+	<view :style="themeVarsStyle">
 		<scroll-view :scroll-y="modalName==null" class="page" :class="modalName!=null?'show':''">
 			<cu-custom bgColor="bg-gradual-purple" :isBack="true">
 				<block slot="backText">返回</block>
@@ -175,3 +175,4 @@
 		content: "\e6db";
 	}
 </style>
+

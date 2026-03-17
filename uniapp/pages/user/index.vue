@@ -1,5 +1,5 @@
-<template>
-	<view>
+﻿<template>
+	<view :style="themeVarsStyle">
 		<scroll-view :scroll-y="modalName==null" class="page" :class="modalName!=null?'show':''">
 			<cu-custom bgColor="bg-gradual-purple">
 				<block slot="backText">返回</block>
@@ -250,7 +250,8 @@
 				{},
 				val => {
 					if(val.code==1){
-						this.user=val.data.user;
+						this.user = val.data.user;
+						this.refreshAppTheme(this.user);
 						this.auth=val.data.auth;
 						this.messageCount=val.data.msgCount;
 						this.$db.set('user',val.data.user);
@@ -502,3 +503,6 @@
 	.card_list{padding: 10rpx; background: #fff;}
 	.card_img{ width: 100px;height: 50px;}
 </style>
+
+
+

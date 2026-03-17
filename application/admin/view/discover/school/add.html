@@ -1,4 +1,4 @@
-﻿<form id="add-form" class="form-horizontal" role="form" data-toggle="validator" method="POST" action="">
+<form id="add-form" class="form-horizontal" role="form" data-toggle="validator" method="POST" action="">
     <div class="form-group">
         <label class="control-label col-xs-12 col-sm-2">{:__('Name')}:</label>
         <div class="col-xs-12 col-sm-8">
@@ -47,6 +47,60 @@
             <input id="c-longitude" class="form-control" name="row[longitude]" type="text" value="">
         </div>
     </div>
+    {if $hasSchoolThemeFields}
+    <div class="form-group">
+        <label class="control-label col-xs-12 col-sm-2">{:__('Logo')}:</label>
+        <div class="col-xs-12 col-sm-8">
+            <div class="input-group">
+                <input id="c-logo" class="form-control" size="35" name="row[logo]" type="text" value="">
+                <div class="input-group-addon no-border no-padding">
+                    <span><button type="button" id="faupload-logo" class="btn btn-danger faupload" data-input-id="c-logo" data-mimetype="image/*" data-multiple="false" data-preview-id="p-logo"><i class="fa fa-upload"></i> {:__('Upload')}</button></span>
+                    <span><button type="button" id="fachoose-logo" class="btn btn-primary fachoose" data-input-id="c-logo" data-mimetype="image/*" data-multiple="false"><i class="fa fa-list"></i> {:__('Choose')}</button></span>
+                </div>
+                <span class="msg-box n-right"></span>
+            </div>
+            <ul class="row list-inline faupload-preview" id="p-logo"></ul>
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="control-label col-xs-12 col-sm-2">{:__('Header_bg_image')}:</label>
+        <div class="col-xs-12 col-sm-8">
+            <div class="input-group">
+                <input id="c-header_bg_image" class="form-control" size="35" name="row[header_bg_image]" type="text" value="">
+                <div class="input-group-addon no-border no-padding">
+                    <span><button type="button" id="faupload-header_bg_image" class="btn btn-danger faupload" data-input-id="c-header_bg_image" data-mimetype="image/*" data-multiple="false" data-preview-id="p-header_bg_image"><i class="fa fa-upload"></i> {:__('Upload')}</button></span>
+                    <span><button type="button" id="fachoose-header_bg_image" class="btn btn-primary fachoose" data-input-id="c-header_bg_image" data-mimetype="image/*" data-multiple="false"><i class="fa fa-list"></i> {:__('Choose')}</button></span>
+                </div>
+                <span class="msg-box n-right"></span>
+            </div>
+            <ul class="row list-inline faupload-preview" id="p-header_bg_image"></ul>
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="control-label col-xs-12 col-sm-2">{:__('Theme_primary')}:</label>
+        <div class="col-xs-12 col-sm-8">
+            <input id="c-theme_primary" class="form-control" name="row[theme_primary]" type="color" value="#6A5AF9">
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="control-label col-xs-12 col-sm-2">{:__('Theme_secondary')}:</label>
+        <div class="col-xs-12 col-sm-8">
+            <input id="c-theme_secondary" class="form-control" name="row[theme_secondary]" type="color" value="#8F6BFF">
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="control-label col-xs-12 col-sm-2">{:__('Theme_text_color')}:</label>
+        <div class="col-xs-12 col-sm-8">
+            <input id="c-theme_text_color" class="form-control" name="row[theme_text_color]" type="color" value="#FFFFFF">
+        </div>
+    </div>
+    {else /}
+    <div class="form-group">
+        <div class="col-xs-12 col-sm-8 col-sm-offset-2">
+            <div class="alert alert-warning" style="margin-bottom:0;">学校主题功能尚未启用，请先执行 sql/20260316_school_theme_phase5.sql</div>
+        </div>
+    </div>
+    {/if}
     <div class="form-group">
         <label class="control-label col-xs-12 col-sm-2">{:__('Status')}:</label>
         <div class="col-xs-12 col-sm-8">

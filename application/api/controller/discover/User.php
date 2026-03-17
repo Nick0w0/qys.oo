@@ -1,5 +1,4 @@
 <?php
-
 namespace app\api\controller\discover;
 use addons\third\model\Third;
 use app\common\library\Auth;
@@ -340,8 +339,8 @@ class User extends Base
                 $user->gender = $rawData['gender'];;
                 $user->save();
 
-                $auths = $this->auth->getUserinfo();
-                $userInfo = $this->getUserInfo($auths['id']);
+                $auths = $this->enrichAuthUserinfo($this->auth->getUserinfo());
+                $userInfo = $this->appendSchoolInfo($this->getUserInfo($auths['id']));
 
                 $userinfos=[
                         'id'=>$userInfo['id'],
@@ -442,16 +441,9 @@ class User extends Base
             $this->error(__('参数错误'));
         }
         $ret = $this->auth->login($account, $password);
-        $userinfo=$this->auth->getUserinfo();
-        if($this->is_url($userinfo['avatar'])==0){
-                $userinfo['avatar']=letter_avatar($userinfo['nickname']);
-              }
-        if($this->is_url($userinfo['avatar'])==2){
-            $userinfo['avatar']=$this->serverImgHost.$userinfo['avatar'];
-          }
-        
+        $userinfo = $this->enrichAuthUserinfo($this->auth->getUserinfo());
         if ($ret) {
-            $data = ['userinfo' =>$userinfo,'auth' => $userinfo];
+            $data = ['userinfo' => $userinfo, 'auth' => $userinfo];
             $this->success(__('登录成功'), $data);
         } else {
             //$this->error($this->auth->getError());
@@ -599,8 +591,8 @@ class User extends Base
         //var_dump($this->auth->isLogin());exit;
         if ($this->auth->isLogin()) {
             $user_id=$this->auth->id;
-            $auth = $this->auth->getUserinfo();
-            $user = $this->getUserInfo($auth['user_id']);
+            $auth = $this->enrichAuthUserinfo($this->auth->getUserinfo());
+            $user = $this->appendSchoolInfo($this->getUserInfo($auth['user_id']));
             $msgCount=$this->logModel
                   ->alias('A')
                   ->join('discover B','B.id=A.discover_id')
@@ -843,3 +835,6 @@ class User extends Base
 
 
 }
+
+
+

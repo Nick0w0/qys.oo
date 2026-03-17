@@ -1,5 +1,5 @@
-<template>
-	<view>
+﻿<template>
+	<view :style="themeVarsStyle">
 		<view class="cu-custom" :style="[{height:CustomBar + 'px'}]">
 			<view class="cu-bar fixed" :style="style" :class="[bgImage!=''?'none-bg text-white bg-img':'',bgColor]">
 				<view class="action" @tap="BackPage" v-if="isBack">
@@ -16,6 +16,7 @@
 </template>
 
 <script>
+	import { navigateBack as commonNavigateBack } from '../../config/common.js';
 	export default {
 		data() {
 			return {
@@ -52,9 +53,17 @@
 		},
 		methods: {
 			BackPage() {
-				uni.navigateBack({
-					delta: 1
-				});
+				const pages = getCurrentPages();
+				if (pages.length > 1) {
+					uni.navigateBack({
+						delta: 1,
+						fail: () => {
+							commonNavigateBack(1);
+						}
+					});
+					return;
+				}
+				commonNavigateBack(1);
 			}
 		}
 	}
@@ -63,3 +72,4 @@
 <style>
 
 </style>
+

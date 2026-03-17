@@ -1,5 +1,5 @@
 <template>
-	<view>  
+	<view :style="themeVarsStyle">  
 			<view style="height:75px"></view>
 			<view class="cu-bar tabbar bg-white shadow foot">
 				
@@ -8,7 +8,7 @@
 				</view>
 				
 				<view class="action" :class="footerTab=='1'?'text-purple':'text-gray'" @tap="clickTabPath('/pages/index/hot')">
-					<view class="cuIcon-hotfill"></view> 关注
+					<view class="cuIcon-hotfill"></view> 动态
 				</view>
 				
 				<view class="action add-action" :class="footerTab=='2'?'text-purple':'text-gray'" @tap="clickTabPath('/pages/index/publish')">
@@ -56,30 +56,28 @@
 		},
 		methods: {
 			clickTabPath(url) {
-				// uni.navigateTo({
-				// 	url:url,
-				// 	success: res => {
-						
-				// 	},
-				// 	fail: res => {
-						
-				// 	},
-				// 	complete: res => {
-				// 		console.log(res);
-				// 	}
-				// })
-				uni.redirectTo({
-					url:url,
-					success: res => {
-						
-					},
-					fail: res => {
-						
-					},
-					complete: res => {
-						//console.log(res);
+				const targetUrl = String(url || '').trim();
+				if (!targetUrl) {
+					return;
+				}
+				const targetRoute = targetUrl.replace(/^\//, '').split('?')[0];
+				const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : [];
+				const currentPage = pages.length ? pages[pages.length - 1] : null;
+				if (currentPage && currentPage.route === targetRoute) {
+					return;
+				}
+				const targetIndex = pages.findIndex(page => page.route === targetRoute);
+				if (targetIndex >= 0) {
+					const delta = pages.length - 1 - targetIndex;
+					if (delta > 0) {
+						uni.navigateBack({ delta });
+						return;
 					}
-				})
+				}
+				const navigateMethod = pages.length >= 9 ? 'redirectTo' : 'navigateTo';
+				uni[navigateMethod]({
+					url: targetUrl
+				});
 			}
 		}
 	}
@@ -88,3 +86,4 @@
 <style>
 
 </style>
+

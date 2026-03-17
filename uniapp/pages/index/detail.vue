@@ -1,5 +1,5 @@
 <template>
-	<view>
+	<view :style="themeVarsStyle">
 		<cu-custom bgColor=" bg-gradual-purple" :isBack="true"><block slot="backText">返回</block><block slot="content">{{detailDatas.title}}</block></cu-custom>
 		<view class="video" v-if="videoSrc">
 			<video :src="videoSrc" autoplay loop muted :show-play-btn="true" :controls="true" objectFit="cover"></video>
@@ -29,7 +29,7 @@
 							</view>
 						</view>
 						<view class="action">
-							<button class="cu-btn light sm" @tap="doAttentionDataOp" :class="isfollow?'bg-red':'bg-grey'" data-target="gridModal"><text class="cuIcon-attentionfavorfill" :class="isfollow?'text-red':'text-grey'"></text></text></button>
+							<button class="cu-btn light sm detail-follow-btn" @tap="doAttentionDataOp" :class="isfollow?'bg-red':'bg-grey'" data-target="gridModal"><text class="cuIcon-attentionfavorfill margin-right-xs" :class="isfollow?'text-red':'text-grey'"></text><text>{{ isfollow ? '已关注' : '关注' }}</text></button>
 						</view>
 					</view>
 				</view>
@@ -516,4 +516,17 @@
 	.video{
 		video{width: 100%;display: block;}
 	}
+.detail-follow-btn{
+    min-width: 132rpx;
+    padding: 0 20rpx !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    box-sizing: border-box;
+}
+.detail-follow-btn text{
+    white-space: nowrap;
+}
 </style>
+

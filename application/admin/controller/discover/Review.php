@@ -2,49 +2,98 @@
 
 namespace app\admin\controller\discover;
 
-class Review extends Discover
+use app\common\controller\Backend;
+use app\common\model\Config as ConfigModel;
+use think\Db;
+
+/**
+ * 内容中心-屏蔽词列表
+ *
+ * @icon fa fa-ban
+ */
+class Review extends Backend
 {
-    public function index()
+    protected $model = null;
+    protected $multiFields = 'status';
+    protected static $schemaCache = [];
+
+    public function _initialize()
     {
-        $this->relationSearch = true;
-        $this->request->filter(['strip_tags', 'trim']);
-        if ($this->request->isAjax()) {
-            if ($this->request->request('keyField')) {
-                return $this->selectpage();
-            }
-            list($where, $sort, $order, $offset, $limit) = $this->buildparams();
+        parent::_initialize();
+        $this->ensureBlockedWordSchema();
+        $this->syncLegacyConfigWords();
+        $this->model = new \app\admin\model\discover\Review;
+        $this->view->assign('statusList', $this->model->getStatusList());
+    }
 
-            $relations = ['user', 'discovertag', 'discovertopic'];
-            if ($this->hasSchoolScopeSchema()) {
-                $relations[] = 'school';
-            }
-
-            $query = $this->model->with($relations)->where($where);
-            if ($this->hasModerationSchema()) {
-                $query->where('discover.audit_status', 'pending');
-            }
-            if (!$this->auth->isSuperAdmin() && $this->hasSchoolScopeSchema()) {
-                $schoolId = $this->getCurrentSchoolId();
-                $query->where('discover.school_id', $schoolId ?: -1);
-            }
-
-            $list = $query->order($sort, $order)->paginate($limit);
-            foreach ($list as $row) {
-                if ($row->getRelation('user')) {
-                    $row->getRelation('user')->visible(['nickname']);
-                }
-                if ($row->getRelation('discovertag')) {
-                    $row->getRelation('discovertag')->visible(['name']);
-                }
-                if ($row->getRelation('discovertopic')) {
-                    $row->getRelation('discovertopic')->visible(['name']);
-                }
-                if ($this->hasSchoolScopeSchema() && $row->getRelation('school')) {
-                    $row->getRelation('school')->visible(['name']);
-                }
-            }
-            return json(['total' => $list->total(), 'rows' => $list->items()]);
+    protected function hasTable($table)
+    {
+        $key = 'table:' . $table;
+        if (!array_key_exists($key, self::$schemaCache)) {
+            $fullTable = config('database.prefix') . $table;
+            $result = Db::query("SHOW TABLES LIKE '" . addslashes($fullTable) . "'");
+            self::$schemaCache[$key] = !empty($result);
         }
-        return $this->view->fetch();
+        return self::$schemaCache[$key];
+    }
+
+    protected function ensureBlockedWordSchema()
+    {
+        if (!$this->hasTable('discover_blocked_word')) {
+            $this->error(__('Please run blocked words sql'));
+        }
+    }
+
+    protected function normalizeBlockedWords($value)
+    {
+        $value = trim((string)$value);
+        if ($value === '') {
+            return [];
+        }
+        $items = preg_split('/[\r\n,，;；]+/u', $value);
+        $words = [];
+        foreach ($items as $item) {
+            $item = trim((string)$item);
+            if ($item !== '') {
+                $words[$item] = $item;
+            }
+        }
+        return array_values($words);
+    }
+
+    protected function syncLegacyConfigWords()
+    {
+        if (Db::name('discover_blocked_word')->count() > 0) {
+            return;
+        }
+        $config = ConfigModel::getByName('discover_blocked_words');
+        if (!$config || !isset($config['value'])) {
+            return;
+        }
+        $words = $this->normalizeBlockedWords($config['value']);
+        if (empty($words)) {
+            return;
+        }
+        $time = time();
+        $rows = [];
+        $total = count($words);
+        foreach ($words as $index => $word) {
+            $rows[] = [
+                'word'       => $word,
+                'remark'     => __('Legacy migrated remark'),
+                'status'     => 'normal',
+                'weigh'      => $total - $index,
+                'createtime' => $time,
+                'updatetime' => $time,
+            ];
+        }
+        if (!empty($rows)) {
+            Db::name('discover_blocked_word')->insertAll($rows);
+        }
+    }
+
+    public function import()
+    {
+        parent::import();
     }
 }

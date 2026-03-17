@@ -1,5 +1,5 @@
-<template>
-	<view>
+﻿<template>
+	<view :style="themeVarsStyle">
 		<cu-custom bgColor="bg-gradual-purple" :isBack="true">
 			<block slot="backText">返回</block>
 			<block slot="content">个人信息</block>
@@ -115,6 +115,7 @@
 				data => {
 					if(data.code==1){
 						let user=data.data.user;
+						this.refreshAppTheme(user);
 						this.imgList.push(user.avatar)
 						this.avatarUrl=user.avatar
 						this.mobile=user.mobile
@@ -223,3 +224,6 @@
 	.sunmit_btn button{font-size: 36rpx; height: 74rpx; line-height: 74rpx; width: 360rpx; border-radius: 74rpx; margin: 0 auto; padding: 0; display: block;}
 	.sunmit_btn button::after{display: none;}
 </style>
+
+
+

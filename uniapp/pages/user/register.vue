@@ -1,5 +1,5 @@
-<template>
-	<view class="content">
+﻿<template>
+	<view class="content" :style="themeVarsStyle">
 	  <cu-custom bgColor="bg-gradual-purple" :isBack="true"><block slot="backText">返回</block><block slot="content">注册</block></cu-custom>
 		<block v-if="ismobile">
 			<view class="">
@@ -248,7 +248,8 @@
 								_this.$db.set('login', 1)
 								_this.$db.set('token', data.data.user.token)
 								_this.$db.set('user', data.data.user)	
-								_this.$db.set('auth', data.data.auth)							
+								_this.$db.set('auth', data.data.auth)
+								_this.refreshAppTheme(data.data.user)							
 							} catch (e) {}
 							
 							
@@ -297,7 +298,8 @@
 										this.$db.set('upload',1)
 										this.$db.set('login', 1)
 										this.$db.set('auth',res.auth)
-										this.$db.set('user', res.userinfo)						
+										this.$db.set('user', res.userinfo)
+										this.refreshAppTheme(res.userinfo)						
 									} catch (e) {
 										console.log("e: ",e);
 									}
@@ -464,3 +466,6 @@
 		background: #f7f7f7; color: #666; border-radius:20rpx;
 	}
 </style>
+
+
+

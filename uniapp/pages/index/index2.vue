@@ -1,6 +1,6 @@
-
+﻿
 <template>
-  <view class="content">
+  <view class="content" :style="themeVarsStyle">
 	  <cu-custom bgColor="bg-gradual-purple" :isBack="false"><block slot="backText">返回</block><block slot="content">瀑布流种草</block></cu-custom>
     <waterfallsFlowNav
       ref="waterfalls_flow_nav"
@@ -79,7 +79,8 @@ export default {
   		this.$api.refreshUser(
   		{},
   		val => {
-  			this.user=val.data.user;
+  			this.user = val.data.user;
+  			this.refreshAppTheme(this.user);
   			this.auth=val.data.auth;
   			this.messageCount=val.data.msgCount;
   		})
@@ -242,3 +243,6 @@ page {
 }
 
 </style>
+
+
+

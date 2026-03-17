@@ -1,9 +1,9 @@
-<template>
-	<view>
+﻿<template>
+	<view :style="themeVarsStyle">
 		
 			<cu-custom bgColor="bg-gradual-purple">
 				<block slot="backText">返回</block>
-				<block slot="content">消息列表</block>
+				<block slot="content">通知消息</block>
 			</cu-custom>
 			<scroll-view scroll-x class="bg-gradual-purple nav text-center">
 				<view class="cu-item" :class="0==TabCur?'text-white cur':''" @tap="tabSelect" data-id="0">
@@ -13,7 +13,7 @@
 					<text class="cuIcon-favorfill"></text> 点赞
 				</view>
 				<view class="cu-item" :class="2==TabCur?'text-white cur':''" @tap="tabSelect" data-id="2">
-					<text class="cuIcon-attentionfavorfill"></text> 关注
+					<text class="cuIcon-attentionfavorfill"></text> 新增关注
 				</view>
 				<view class="cu-item" :class="3==TabCur?'text-white cur':''" @tap="tabSelect" data-id="3">
 					<text class="cuIcon-commentfill"></text> 评论
@@ -21,7 +21,7 @@
 			</scroll-view>
 			<view class="cu-bar bg-white solid-bottom ">
 				<view class="action">
-					<text class="cuIcon-title text-orange "></text> 全部消息
+					<text class="cuIcon-title text-orange "></text> 通知消息
 				</view>
 				<view class="action">
 					<button class="cu-btn bg-grey shadow" @tap="showModal" data-target="gridModal">设为已读</button>
@@ -110,10 +110,6 @@
 		onLoad() {
 			page=1;
 		},
-		onShow() {
-			page=1;
-			
-		},
 		onReachBottom() {
 			if(this.totalPage>=page){
 				this.showMessageListsDataOp();
@@ -126,15 +122,21 @@
 			console.log("this.user: ",this.user);
 			if (typeof(this.user)== "undefined" || this.user=='' ||  this.user==null) {
 				this.$common.navigateTo('login');
-			}else{
-				this.$api.refreshUser(
+				return;
+			}
+			page=1;
+			this.ids='';
+			this.messageLists=[];
+			this.totalPage=0;
+			this.showNoResult=false;
+			this.$api.refreshUser(
 				{},
 				val => {
-					this.user=val.data.user;
+					this.user = val.data.user;
+					this.refreshAppTheme(this.user);
 					this.auth=val.data.auth;
 					this.messageCount=val.data.msgCount;
 				})
-			}
 			this.showMessageListsDataOp();
 		},
 		methods: {
@@ -235,6 +237,7 @@
 			this.messageLists=[];
 			this.totalPage=0;
 			this.showNoResult=false
+			this.ids=''
 			this.showMessageListsDataOp();
 		}
 
@@ -270,3 +273,6 @@
 	.show{ display: block;}
 	.hide{ display: none;}
 </style>
+
+
+

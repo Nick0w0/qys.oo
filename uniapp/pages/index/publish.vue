@@ -1,5 +1,5 @@
 ﻿<template>
-	<view>
+	<view :style="themeVarsStyle">
 		<cu-custom bgColor="bg-gradual-purple">
 			<block slot="backText">返回</block>
 			<block slot="content">发布动态</block>
@@ -179,7 +179,8 @@
 				this.$api.refreshUser(
 				{},
 				val => {
-					this.user=val.data.user;
+					this.user = val.data.user;
+					this.refreshAppTheme(this.user);
 					this.auth=val.data.auth;
 					this.messageCount=val.data.msgCount;
 					if(!this.user.school_id){
@@ -502,5 +503,8 @@
 	}
 	.selectPic{ color:#FFBC30}
 </style>
+
+
+
 
 

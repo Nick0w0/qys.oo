@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 class Common extends Base
 {
 
-    protected $noNeedLogin = ['index','type','detail','showCommentLists','locationData'];
+    protected $noNeedLogin = ['type','detail','showCommentLists','locationData'];
     protected $noNeedRight = ['*'];
     public function _initialize()
     {
@@ -125,6 +125,7 @@ class Common extends Base
         if(!isset($data['coverimage'])){
 
         }
+        $this->assertDiscoverPublishAllowed($data);
         if($data['latlng']!=''){
             $discoverConfig=get_addon_config['discover'];
             $mapKey=$discoverConfig['tmapkey']['key'];
@@ -155,30 +156,35 @@ class Common extends Base
      */
 
     public function locationData(){
-        $data=$this->request->request();
-        if(isset($data['latlng']) && $data['latlng']!=''){
-            $discoverConfig=get_addon_config['discover'];
-            $mapKey=$discoverConfig['tmapkey']['key'];
-            $url='https://apis.map.qq.com/ws/geocoder/v1/?location='.$data['latlng'].'&key='.$mapKey; 
-            $result= $this ->http_curl($url);      
-            $result=json_decode($result,true);
-            $result2=$result['result']['address_component'];
-            $result3=$result['result']['formatted_addresses'];
-            $datas['province']=$result2['province'];
-            $municipality=array('上海市','重庆市','天津市','北京市');
-            foreach ($municipality as $key => $value) {
-              if($datas['province']==$value){
-                $datas['province']=str_replace('市','',$value);
-              }
-            }
-            //var_dump($datas['province']);exit;
-            //if($datas['province'])
-            $datas['city']=$result2['city'].'/'.$result2['district'];
-            $datas['address']=$result3['rough'];
-            $this->success('获取成功',$datas);
-        }else{
+        $data = $this->request->request();
+        $latlng = isset($data['latlng']) ? trim($data['latlng']) : '';
+        if ($latlng === '') {
             $this->error('参数错误');
         }
+        $discoverConfig = get_addon_config('discover');
+        $mapKey = isset($discoverConfig['tmapkey']['key']) ? trim($discoverConfig['tmapkey']['key']) : '';
+        if ($mapKey === '') {
+            $this->error('定位服务未配置');
+        }
+        $url = 'https://apis.map.qq.com/ws/geocoder/v1/?location=' . $latlng . '&key=' . $mapKey;
+        $result = $this->http_curl($url);
+        $result = json_decode($result, true);
+        if (!isset($result['status']) || (int)$result['status'] !== 0 || empty($result['result']['address_component'])) {
+            $this->error('定位解析失败');
+        }
+        $result2 = $result['result']['address_component'];
+        $result3 = isset($result['result']['formatted_addresses']) ? $result['result']['formatted_addresses'] : [];
+        $datas['province'] = isset($result2['province']) ? $result2['province'] : '';
+        $municipality = array('上海市','重庆市','天津市','北京市');
+        foreach ($municipality as $key => $value) {
+            if ($datas['province'] == $value) {
+                $datas['province'] = str_replace('市', '', $value);
+            }
+        }
+        $datas['city'] = isset($result2['city']) ? $result2['city'] : '';
+        $datas['district'] = isset($result2['district']) ? $result2['district'] : '';
+        $datas['address'] = isset($result3['rough']) ? $result3['rough'] : '';
+        $this->success('获取成功', $datas);
     }
     
     /**
