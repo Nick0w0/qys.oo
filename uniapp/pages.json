@@ -23,6 +23,10 @@
 		"style" :  {"navigationBarTitleText": "发布动态"}                                                                                     
 	},
 	{
+		"path" : "pages/index/search",
+		"style" :  {"navigationBarTitleText": "搜索"}
+	},
+	{
 	  "path": "pages/plugin/index",
 	  "style": {
 	    "navigationBarTitleText": "地址选择"

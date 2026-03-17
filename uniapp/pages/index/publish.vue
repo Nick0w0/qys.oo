@@ -1,6 +1,6 @@
 ﻿<template>
 	<view :style="themeVarsStyle">
-		<cu-custom bgColor="bg-gradual-purple">
+		<cu-custom bgColor="bg-gradual-purple" :isBack="true">
 			<block slot="backText">返回</block>
 			<block slot="content">发布动态</block>
 		</cu-custom>
@@ -57,7 +57,7 @@
 			
 			<view class="cu-bar bg-white margin-top">
 				<view class="action">
-					图片上传
+					图片上传（选填）
 				</view>
 				<view class="action">
 					{{imgList.length}}/{{maxCount}}
@@ -79,14 +79,6 @@
 						<text class='cuIcon-cameraadd'></text>
 					</view>
 				</view>
-			</view>
-			<view class="cu-bar bg-white margin-top">
-				<view class="action">
-					视频上传
-				</view>
-			</view>
-			<view class="margin-top padding-lr bg-white">
-				<uploadVideo :mode="videoList" :maxCount="1" @chooseFile="chooseFile"></uploadVideo>
 			</view>
 			<view class="cu-form-group margin-top">
 				<view class="title">开启评论</view>
@@ -113,21 +105,17 @@
 					<!-- <button class="cu-btn bg-green shadow-blur round">保存</button> -->
 					<button class="cu-btn bg-purple shadow-blur round" @click="publishForm()"><text class="cuIcon-cameraadd"></text></text> 发布动态</button>
 				</view>
-
-		<colorbar footerTab="2" :messageCount='messageCount'></colorbar>
 	</view>
 </template>
 
 <script>
 	var _this;
 	import colorbar from "@/components/color-bar.vue";
-	import uploadVideo from "@/components/upload-video/upload-video.vue";
 	import {
-		baseUrl,
 		baseApiUrl
 	} from '../../config/config.js';
 	export default {
-		components: {colorbar,uploadVideo },
+		components: {colorbar },
 		data() {
 			return {
 				index: -1,
@@ -153,7 +141,6 @@
 				addresses:'',
 				tag_ids:'',
 				publishSwitch:true,//防止重复点击
-				videoList:[],
 				shortImgUrl:[]
 				
 			};
@@ -194,10 +181,6 @@
 			
 		},
 		methods: {
-			chooseFile(list){
-				let videoUrl=list[0]
-				this.shortUrl.push(videoUrl)
-			},
 			//分类数据
 			typeDataLists(){
 					_this.$api.typeData(
@@ -268,14 +251,6 @@
 						_this.$common.normalToShow('请选择标签')
 						return false;
 					}
-					if(this.imgList.length==0){
-						_this.$common.normalToShow('请至少上传一张图片')
-						return false;
-					}
-					if(this.imgList2==''){
-						_this.$common.normalToShow('请选择封面图')
-						return false;
-					}
 
 					if(this.switchB){
 						if(this.addresses=='' || this.latlng==''){
@@ -289,12 +264,14 @@
 					}
 					if(this.publishSwitch){
 						this.publishSwitch=false;
+						const coverImages = Array.isArray(this.shortUrl) ? this.shortUrl.filter(Boolean) : [];
+						const coverImage = this.shortUrl2 || (coverImages.length > 0 ? coverImages[0] : '');
 						this.$api.publishData(
 						{title:this.textareaAValue,
 							description:this.textareaBValue,
 							content:this.textareaBValue,
-							coverimage:this.shortUrl2,
-							coverimages:this.shortUrl,
+							coverimage:coverImage,
+							coverimages:coverImages.join(','),
 							tag_ids:this.tag_ids,
 							city:'',
 							address:this.addresses,
@@ -457,9 +434,24 @@
 					confirmText: '删除',
 					success: res => {
 						if (res.confirm) {
+							const currentBlockIndex = this.blockIndex;
 							this.imgList.splice(index, 1)
-							if(index==this.blockIndex){
+							this.shortImgUrl.splice(index, 1)
+							this.shortUrl.splice(index, 1)
+							if(this.imgList.length===0){
 								this.blockIndex=0;
+								this.imgList2='';
+								this.shortUrl2='';
+								return;
+							}
+							if(index < currentBlockIndex){
+								this.blockIndex=currentBlockIndex-1;
+							}else if(index===currentBlockIndex){
+								this.blockIndex=0;
+								this.imgList2=this.imgList[0];
+								this.shortUrl2=this.shortUrl[0];
+							}else{
+								this.blockIndex=currentBlockIndex;
 							}
 						}
 					}

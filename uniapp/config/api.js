@@ -28,7 +28,6 @@ const post = (method, data, callback,type) => {
 	}else{
 		method = '/' + method
 	}
-    uni.showLoading({title:'',icon:'loading'});
 	uni.request({
 		url: baseApiUrl + method,
 		data: data,
@@ -39,7 +38,6 @@ const post = (method, data, callback,type) => {
 		},
 		method: 'POST',
 		success: (response) => {
-			uni.hideLoading();
 			const result = response.data
 			if (result.msg == 'Please login' || result.msg == '请登陆') {
 				db.del("user");
@@ -59,7 +57,6 @@ const post = (method, data, callback,type) => {
 			callback(result);
 		},
 		fail: (error) => {
-			uni.hideLoading();
 			if (error && error.response) {
 				showError(error.response);
 			}

@@ -128,54 +128,48 @@
 					</view>
 				</view>
 				
-				<view class="cu-bar bg-white margin-top" v-if="user">
-					<view class="action">
-						<text class="cuIcon-title text-orange"></text> 我发布的
+				<view class="publish-section" v-if="user">
+					<view class="publish-header">
+						<view class="publish-title">
+							<text class="publish-dot"></text>
+							<text>我发布的</text>
+						</view>
+						<view class="publish-total">{{total || 0}}</view>
 					</view>
-					<view class="action">
-						<text class="text-grey">{{total}}</text>
-					</view>
-				</view>
-
-				<block v-if="discoverLists.length>0">
-				<view class="cu-timeline"  v-for="(item,index) in discoverLists" :key="index">
-					<view class="cu-time" style="width: 160rpx;">{{item.monthDate}}</view>
-					<view class="cu-item" :class="item.istoday==1?'text-purple':''">
-						<view class="content">
-							<view class="card_list">
-								<view class="cu-card dynamic no-card padding-sm" v-for="(item2,index2) in item.list" :key="index2" v-if="item.list.length==1">
-									<view class="cu-item shadow">
-										<view class="grid flex-sub col-1" @click="detail(item2.id)">
-											<view class="bg-img only-img" :style="{'background-image':'url('+item2.coverimage+')'}">
+					<block v-if="discoverLists.length>0">
+						<view class="publish-group" v-for="(item,index) in discoverLists" :key="index">
+							<view class="publish-date">{{item.monthDate}}</view>
+							<view class="publish-card">
+								<view class="publish-item" v-for="(item2,index2) in item.list" :key="index2">
+									<view class="publish-main" @click="detail(item2.id)">
+										<view class="publish-content">
+											<view class="publish-text">{{item2.title}}</view>
+											<view class="publish-meta">
+												<text>{{item2.time}}</text>
+												<text><text class="cuIcon-appreciatefill"></text>{{item2.favorNum}}</text>
+												<text><text class="cuIcon-commentfill"></text>{{item2.commentNum}}</text>
 											</view>
 										</view>
-										<view class="text-black padding-tb-sm" @click="detail(item2.id)">
-											{{item2.title}}
-										</view>
-										<view class="text-grey text-xs flex justify-between">
-											<view>{{item2.time}} <text class="cuIcon-appreciatefill margin-lr-xs"></text> {{item2.favorNum}} <text class="cuIcon-commentfill margin-lr-xs"></text> {{item2.commentNum}} </view> 
-										    <view @click="del(item2.id,index,index2,item2.title)"><text class="cuIcon-delete text-red margin-left-sm margin-lr-xs te"></text></view>
-										</view>
+										<image
+											v-if="hasCoverImage(item2.coverimage, item2.id)"
+											class="publish-cover"
+											:src="item2.coverimage"
+											mode="aspectFill"
+											@error="onCoverError(item2.id)"
+										></image>
+									</view>
+									<view class="publish-delete" @click="del(item2.id,index,index2,item2.title)">
+										<text class="cuIcon-delete"></text>
 									</view>
 								</view>
-								<view class="card_list_item flex"   v-for="(item2,index2) in item.list" :key="index2"  v-if="item.list.length>1">
-								   <view @click="detail(item2.id)" class="cu-avatar card_img" :style="{'background-image':'url('+item2.coverimage+')'}"></view>
-								   <view class="card_content margin-lr-xs">
-									  <view class="text-black text-sm" @click="detail(item2.id)">{{item2.title}}
-									  </view>
-									  <view class="text-grey text-xs flex justify-between">
-										  <view>{{item2.time}} <text class="cuIcon-appreciatefill margin-lr-xs"></text> {{item2.favorNum}}   <text class="cuIcon-commentfill margin-lr-xs"></text> {{item2.commentNum}}</view>
-									      <view @click="del(item2.id,index,index2,item2.title)"><text class="cuIcon-delete text-red margin-left-sm margin-lr-xs te"></text></view></view>
-									 
-								   </view>
-								</view>
 							</view>
-							
 						</view>
-					</view>		
+					</block>
+					<view class="publish-empty" v-else>
+						<text>还没有发布内容</text>
+					</view>
+					<view class="text-center text-gray padding-tb-sm" :class="showNoResult?'show':'hide'">我是有底线的...</view>
 				</view>
-				</block>
-			<view class="text-center text-gray padding-tb-sm" v-if="user" :class="showNoResult?'show':'hide'">我是有底线的...</view>
 			</view>
 		
 		</scroll-view>
@@ -222,7 +216,8 @@
 				total:'',
 				showNoResult:false,
 				totalPage:0,
-				messageCount:0
+				messageCount:0,
+				failedCoverMap:{}
 			};
 		},
 		mounted() {
@@ -281,6 +276,12 @@
 			},
 			userInfo(){
 				this.$common.navigateTo('/pages/user/userInfo');
+			},
+			hasCoverImage(url,id){
+				return !!url && String(url).trim() !== '' && String(url).indexOf('example.com') === -1 && !this.failedCoverMap[id];
+			},
+			onCoverError(id){
+				this.$set(this.failedCoverMap, id, true);
 			},
 			//作品列表
 			doMyDiscoverListsDataOp(){
@@ -500,8 +501,113 @@
 	.switch-music::before {
 		content: "\e6db";
 	}
-	.card_list{padding: 10rpx; background: #fff;}
-	.card_img{ width: 100px;height: 50px;}
+	.publish-section{
+		padding: 18rpx 24rpx 24rpx;
+	}
+	.publish-header{
+		display:flex;
+		align-items:center;
+		justify-content:space-between;
+		padding: 0 2rpx 12rpx;
+	}
+	.publish-title{
+		display:flex;
+		align-items:center;
+		font-size: 30rpx;
+		color:#2f3440;
+		font-weight:600;
+	}
+	.publish-dot{
+		width: 12rpx;
+		height: 12rpx;
+		border-radius:50%;
+		background:#ff8a2a;
+		margin-right:16rpx;
+	}
+	.publish-total{
+		font-size: 28rpx;
+		color:#98a0ad;
+	}
+	.publish-group{
+		margin-bottom: 14rpx;
+	}
+	.publish-date{
+		font-size: 24rpx;
+		color:#9aa3b2;
+		padding: 0 8rpx 10rpx;
+	}
+	.publish-card{
+		background:#fff;
+		border-radius:20rpx;
+		padding: 0 20rpx;
+	}
+	.publish-item{
+		display:flex;
+		align-items:center;
+		padding: 20rpx 0;
+		border-bottom: 1rpx solid #f3f4f6;
+	}
+	.publish-item:last-child{
+		border-bottom:none;
+	}
+	.publish-main{
+		flex:1;
+		display:flex;
+		align-items:center;
+		min-width:0;
+	}
+	.publish-content{
+		flex:1;
+		min-width:0;
+	}
+	.publish-text{
+		font-size: 28rpx;
+		line-height: 1.5;
+		color:#2f3440;
+		word-break:break-all;
+	}
+	.publish-meta{
+		display:flex;
+		align-items:center;
+		flex-wrap:wrap;
+		margin-top: 10rpx;
+		font-size: 22rpx;
+		color:#a4acb8;
+	}
+	.publish-meta text{
+		margin-right: 16rpx;
+	}
+	.publish-meta .cuIcon-appreciatefill,
+	.publish-meta .cuIcon-commentfill{
+		margin-right: 6rpx;
+		font-size: 20rpx;
+	}
+	.publish-cover{
+		width: 96rpx;
+		height: 96rpx;
+		border-radius:16rpx;
+		margin-left: 16rpx;
+		flex-shrink:0;
+		background:#f5f7fb;
+	}
+	.publish-delete{
+		width: 44rpx;
+		height: 44rpx;
+		display:flex;
+		align-items:center;
+		justify-content:center;
+		color:#c9cfd8;
+		font-size: 26rpx;
+		margin-left: 10rpx;
+	}
+	.publish-empty{
+		background:#fff;
+		border-radius:20rpx;
+		padding: 44rpx 24rpx;
+		text-align:center;
+		color:#a1a9b5;
+		font-size: 26rpx;
+	}
 </style>
 
 

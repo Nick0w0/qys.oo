@@ -114,16 +114,24 @@ class Common extends Base
         }else{
            // $data['content']=$this->userTextEncode($data['content']);
         }
-         if(!isset($data['content'])){
+        if(!isset($data['content'])){
             $this->error('请填写动态内容');
         }else{
           //  $data['content']=$this->userTextEncode($data['content']);
         }
-         if(!isset($data['coverimages'])){
-            $this->error('请至少上传一张图片');
+        $coverimages = isset($data['coverimages']) ? $data['coverimages'] : '';
+        if (is_array($coverimages)) {
+            $coverimages = implode(',', array_filter($coverimages));
         }
-        if(!isset($data['coverimage'])){
-
+        $data['coverimages'] = trim((string)$coverimages, ',');
+        $coverimage = isset($data['coverimage']) ? $data['coverimage'] : '';
+        if (is_array($coverimage)) {
+            $coverimage = reset($coverimage) ?: '';
+        }
+        $data['coverimage'] = trim((string)$coverimage);
+        if ($data['coverimage'] === '' && $data['coverimages'] !== '') {
+            $coverImageList = array_values(array_filter(explode(',', $data['coverimages'])));
+            $data['coverimage'] = !empty($coverImageList) ? $coverImageList[0] : '';
         }
         $this->assertDiscoverPublishAllowed($data);
         if($data['latlng']!=''){

@@ -2,13 +2,16 @@
   <view class="content" :style="themeVarsStyle">
 	  <view class="home-topbar" :style="schoolHeroStyle">
 		<view class="home-topbar-row" :style="homeTopbarRowStyle">
-			<view class="home-school-hero" @tap="addressChange">
+			<view class="home-school-hero">
 				<view class="home-school-logo-shell">
 					<image v-if="schoolLogoUrl" class="home-school-logo" :src="schoolLogoUrl" mode="aspectFill"></image>
 					<view v-else class="home-school-logo-fallback">{{ schoolDisplayInitial }}</view>
 				</view>
 				<view class="home-school-main">
-					<text class="home-school-name">{{ schoolDisplayName }}</text>
+					<view class="home-school-name-row">
+						<text class="home-school-name">{{ schoolDisplayName }}</text>
+						<text class="cuIcon-search home-school-search" @tap.stop="openSearch"></text>
+					</view>
 				</view>
 			</view>
 		</view>
@@ -42,7 +45,7 @@
 							<image class="feed-user-avatar" v-if="item.avatar!=''" :src="item.avatar" mode="aspectFill"></image>
 							<image class="feed-user-avatar" v-else src="../../static/images/avatar.png" mode="aspectFill"></image>
 							<view class="feed-user-main">
-								<view class="feed-user-name">{{item.feed_nickname || item.nickname}}</view>
+								<text class="feed-user-name" style="font-size:18rpx;font-weight:700;color:#334155;line-height:1.1;">{{item.feed_nickname || item.nickname}}</text>
 							</view>
 						</view>
 						<text class="cuIcon-moreandroid feed-more"></text>
@@ -58,7 +61,7 @@
 						</view>
 					</view>
 					<view class="feed-card-foot">
-						<view class="feed-card-meta">{{ item.feed_time_text }}</view>
+						<text class="feed-card-meta" style="font-size:14rpx;color:#c0c8d4;line-height:1.1;">{{ item.feed_time_text }}</text>
 						<view class="feed-card-actions">
 							<view class="feed-card-action">
 								<text class="cuIcon-appreciatefill"></text>
@@ -238,8 +241,8 @@ export default {
             const secondary = this.schoolTheme.secondary;
             const textColor = this.schoolTheme.textColor;
             const backgroundImage = this.schoolHeaderBgImage
-                ? `linear-gradient(135deg, ${this.hexToRgba(primary, 0.94)} 0%, ${this.hexToRgba(secondary, 0.84)} 100%), url(${this.schoolHeaderBgImage})`
-                : `linear-gradient(135deg, ${primary} 0%, ${secondary} 100%)`;
+                ? `linear-gradient(180deg, ${primary} 0%, ${secondary} 46%, #ffffff 100%), url(${this.schoolHeaderBgImage})`
+                : `linear-gradient(180deg, ${primary} 0%, ${secondary} 46%, #ffffff 100%)`;
             return {
                 '--school-header-primary': primary,
                 '--school-header-secondary': secondary,
@@ -650,18 +653,8 @@ export default {
 	  	}
 	  	this.$common.navigateTo('/pages/plugin/index')
 	  },
-	  InputFocus(e){
-		  this.keywords=e.detail.value;
-	  },
-	  InputBlur(e){
-	  	  this.keywords=e.detail.value;
-		  page=1;
-		  _this.list=[];
-		  _this.list1=[];
-		  _this.list2=[];
-		  _this.totalPage='';
-		  _this.showNoResult=false;
-		  _this.getListHandle();
+	  openSearch(){
+		this.$common.navigateTo('/pages/index/search');
 	  },
   }
 };
@@ -748,16 +741,15 @@ export default {
 	position: sticky;
 	top: 0;
 	z-index: 40;
-	padding: calc(var(--status-bar-height) + 18rpx) 0 18rpx;
-	background: linear-gradient(135deg, #8fbff6 0%, #abd2ff 55%, #c9e1ff 100%);
+	padding: calc(var(--status-bar-height) + 10rpx) 0 0;
 	box-sizing: border-box;
 	overflow: hidden;
 }
 .home-topbar-row{
 	display: flex;
 	align-items: center;
-	min-height: 100rpx;
-	padding: 0 24rpx;
+	min-height: 84rpx;
+	padding: 0 24rpx 6rpx;
 	box-sizing: border-box;
 }
 .home-school-hero{
@@ -765,48 +757,64 @@ export default {
 	min-width: 0;
 	display: flex;
 	align-items: center;
+	padding: 0;
 }
 .home-school-logo-shell{
-	width: 88rpx;
-	height: 88rpx;
-	padding: 8rpx;
-	border-radius: 22rpx;
-	background: rgba(255,255,255,0.95);
+	width: 74rpx;
+	height: 74rpx;
+	padding: 6rpx;
+	border-radius: 20rpx;
+	background: rgba(255,255,255,0.92);
+	border: 1rpx solid rgba(143, 191, 246, 0.18);
 	box-sizing: border-box;
-	box-shadow: 0 10rpx 24rpx rgba(46, 97, 170, 0.14);
+	box-shadow: 0 8rpx 18rpx rgba(15, 23, 42, 0.06);
 	flex-shrink: 0;
 }
 .home-school-logo{
 	width: 100%;
 	height: 100%;
-	border-radius: 16rpx;
+	border-radius: 14rpx;
 	display: block;
 }
 .home-school-logo-fallback{
 	width: 100%;
 	height: 100%;
-	border-radius: 16rpx;
+	border-radius: 14rpx;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	background: linear-gradient(135deg, #5d8fe0 0%, #3b6fd2 100%);
+	background: linear-gradient(135deg, var(--school-header-primary) 0%, var(--school-header-secondary) 100%);
 	color: #ffffff;
-	font-size: 34rpx;
+	font-size: 30rpx;
 	font-weight: 700;
 }
 .home-school-main{
 	min-width: 0;
-	padding-left: 20rpx;
+	padding-left: 16rpx;
+}
+.home-school-name-row{
+	display: flex;
+	align-items: center;
+	min-width: 0;
 }
 .home-school-name{
 	display: block;
+	flex: 0 1 auto;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	font-size: 46rpx;
-	font-weight: 700;
+	font-size: 40rpx;
+	font-weight: 600;
 	line-height: 1.2;
 	color: var(--school-header-text, #111827);
+}
+.home-school-search{
+	margin-left: 20rpx;
+	font-size: 28rpx;
+	line-height: 1;
+	color: var(--school-header-text, #111827);
+	opacity: 0.55;
+	flex-shrink: 0;
 }
 .home-top-nav-sticky{
 	position: sticky;
@@ -861,45 +869,7 @@ export default {
 .home-banner-wrap{
 	padding: 16rpx 24rpx 12rpx;
 	background: #ffffff;
-}.header_search{
-	padding: 20rpx;
-	.header_search_flex{
-		background: #fff;
-	    height: 60rpx;
-		line-height: 60rpx;
-		width: 100%;
-		border-radius: 60rpx;
-		border:1px solid #e7e7e7;
-		background-color: #f7f7f7;
-		.searchBox{
-			width: 100%;
-			overflow: hidden;
-			input{
-				height: 60rpx;
-				line-height: 60rpx;
-				text-indent: 20rpx;
-				font-size: 24rpx;
-				width:100%
-			}
-		}
-		.searchBtn{
-			width: 55rpx;
-			height: 55rpx;
-			background-color: #f7f7f7;
-			border-radius: 55rpx;
-			margin-right: 5rpx;
-			image{
-				height: 30rpx;
-				height: 30rpx;
-			}
-		}
-
-		}
-	.flex_layout{
-		display: flex;
-		justify-content: space-between;
-	}
-	}
+}
 
 .content {
   padding:0;
@@ -954,10 +924,10 @@ export default {
 	padding-left: 12rpx;
 }
 .feed-user-name{
-	font-size: 28rpx;
-	font-weight: 400;
+	font-size: 18rpx !important;
+	font-weight: 700 !important;
 	color: #334155;
-	line-height: 1.2;
+	line-height: 1.1;
 }
 .feed-more{
 	padding-left: 12rpx;
@@ -969,16 +939,17 @@ export default {
 	margin-top: 8rpx;
 }
 .feed-title{
-	font-size: 28rpx;
+	font-size: 29rpx;
 	font-weight: 400;
-	line-height: 1.45;
+	line-height: 1.6;
 	color: #334155;
 	word-break: break-word;
 }
 .feed-text{
-	margin-top: 2rpx;
-	font-size: 28rpx;
-	line-height: 1.45;
+	margin-top: 8rpx;
+	font-size: 29rpx;
+	font-weight: 400;
+	line-height: 1.6;
 	color: #334155;
 	word-break: break-word;
 }
@@ -1027,9 +998,9 @@ export default {
 	justify-content: space-between;
 }
 .feed-card-meta{
-	font-size: 20rpx;
-	color: #9ca3af;
-	line-height: 1.2;
+	font-size: 14rpx !important;
+	color: #c0c8d4;
+	line-height: 1.1;
 }
 .feed-card-actions{
 	display: flex;

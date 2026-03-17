@@ -350,14 +350,18 @@ class Base extends Api
           if(!empty($type)){
             $wheres="find_in_set(".intval($type).",discover.tag_ids)";
           }
-          if(!empty($keywords)){
-            $where['discover.title']=array('like','%'.$keywords.'%');
-          }
           if(!empty($location) && $school_id <= 0){
             $where['discover.city']=array('like','%'.$location.'%');
           }
 
           $query = $this->discoverModel->with(['user'])->where($where);
+          if(!empty($keywords)){
+            $query->where(function ($subQuery) use ($keywords) {
+                $subQuery->where('discover.title', 'like', '%' . $keywords . '%')
+                    ->whereOr('discover.description', 'like', '%' . $keywords . '%')
+                    ->whereOr('discover.content', 'like', '%' . $keywords . '%');
+            });
+          }
           if(!empty($type)){
             $query->where($wheres);
           }
