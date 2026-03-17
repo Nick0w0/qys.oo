@@ -32,6 +32,7 @@ class Group extends Backend
     public function _initialize()
     {
         parent::_initialize();
+        $this->error(__('Advanced permission settings are disabled'));
         $this->model = model('AuthGroup');
 
         $this->childrenGroupIds = $this->auth->getChildrenGroupIds(true);

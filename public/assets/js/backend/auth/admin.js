@@ -30,7 +30,7 @@
                         {field: 'id', title: 'ID'},
                         {field: 'username', title: __('Username')},
                         {field: 'nickname', title: __('Nickname')},
-                        {field: 'groups_text', title: __('Group'), operate: false, formatter: Table.api.formatter.label},
+                        {field: 'role_template_text', title: __('Role_template'), operate: false, formatter: Table.api.formatter.label},
                         {field: 'school_name', title: __('School_name'), operate: 'LIKE'},
                         {field: 'email', title: __('Email')},
                         {field: 'mobile', title: __('Mobile')},

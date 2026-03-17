@@ -19,7 +19,7 @@
             table.bootstrapTable({
                 url: $.fn.bootstrapTable.defaults.extend.index_url,
                 pk: 'id',
-                sortName: 'weigh',
+                sortName: 'id',
                 columns: [
                     [
                         {checkbox: true},
@@ -30,8 +30,6 @@
                         {field: 'city', title: __('City'), operate: 'LIKE'},
                         {field: 'area', title: __('Area'), operate: 'LIKE'},
                         {field: 'status', title: __('Status'), searchList: {'normal': __('Normal'), 'hidden': __('Hidden')}, formatter: Table.api.formatter.status},
-                        {field: 'weigh', title: __('Weigh'), operate: false},
-                        {field: 'createtime', title: __('Createtime'), operate: 'RANGE', addclass: 'datetimerange', formatter: Table.api.formatter.datetime},
                         {field: 'operate', title: __('Operate'), table: table, events: Table.api.events.operate, formatter: Table.api.formatter.operate}
                     ]
                 ]

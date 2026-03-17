@@ -5,6 +5,7 @@ namespace app\admin\controller\auth;
 use app\admin\model\AdminSchool;
 use app\admin\model\AuthGroup;
 use app\admin\model\AuthGroupAccess;
+use app\admin\model\AuthRule;
 use app\admin\model\discover\School;
 use app\common\controller\Backend;
 use fast\Random;
@@ -53,7 +54,11 @@ class Admin extends Backend
 
         $this->view->assign('groupdata', $groupdata);
         $this->view->assign('schooldata', $this->getSchoolData());
+        $this->view->assign('roletemplatedata', $this->getRoleTemplateOptions());
         $this->assignconfig('admin', ['id' => $this->auth->id, 'isSuperAdmin' => $this->auth->isSuperAdmin()]);
+        if ($this->auth->isSuperAdmin()) {
+            $this->syncRoleTemplateGroups();
+        }
     }
 
     protected function hasTable($table)
@@ -135,6 +140,149 @@ class Admin extends Backend
         }
     }
 
+    protected function getRoleTemplateDefinitions()
+    {
+        return [
+            'school_manager' => [
+                'label'      => __('Role template school manager'),
+                'desc'       => __('Role template school manager desc'),
+                'group_name' => __('Role group school manager'),
+                'rules'      => [
+                    'discover',
+                    'discover/content',
+                    'discover/discover',
+                    'discover/discover/index',
+                    'discover/discover/edit',
+                    'discover/discover/del',
+                    'discover/discover/multi',
+                ],
+            ],
+        ];
+    }
+
+    protected function getRoleTemplateOptions($includeLegacy = false)
+    {
+        $options = [];
+        foreach ($this->getRoleTemplateDefinitions() as $key => $config) {
+            $options[$key] = $config['label'];
+        }
+        if ($includeLegacy) {
+            $options['legacy_custom'] = __('Role template legacy custom');
+        }
+        return $options;
+    }
+
+    protected function getTemplateParentGroupId()
+    {
+        $groupIds = $this->auth->getGroupIds();
+        if (!empty($groupIds)) {
+            return (int)reset($groupIds);
+        }
+        $superGroupId = (int)AuthGroup::where('rules', '*')->order('id asc')->value('id');
+        return $superGroupId > 0 ? $superGroupId : 1;
+    }
+
+    protected function getRuleIdsByNames(array $ruleNames)
+    {
+        if (empty($ruleNames)) {
+            return [];
+        }
+        return AuthRule::where('name', 'in', $ruleNames)->column('id', 'name');
+    }
+
+    protected function getExistingAdminGroupIds($adminId)
+    {
+        if (!$adminId) {
+            return [];
+        }
+        return AuthGroupAccess::where('uid', (int)$adminId)->column('group_id');
+    }
+
+    protected function ensureRoleTemplateGroup($templateKey)
+    {
+        $definitions = $this->getRoleTemplateDefinitions();
+        if (!isset($definitions[$templateKey])) {
+            exception(__('Please select role template'));
+        }
+        $definition = $definitions[$templateKey];
+        $ruleIdMap = $this->getRuleIdsByNames($definition['rules']);
+        $ruleIds = [];
+        foreach ($definition['rules'] as $ruleName) {
+            if (isset($ruleIdMap[$ruleName])) {
+                $ruleIds[] = $ruleIdMap[$ruleName];
+            }
+        }
+        $saveData = [
+            'pid'    => $this->getTemplateParentGroupId(),
+            'name'   => $definition['group_name'],
+            'rules'  => implode(',', $ruleIds),
+            'status' => 'normal',
+        ];
+        $group = AuthGroup::get(['name' => $definition['group_name']]);
+        if ($group) {
+            $group->allowField(true)->save($saveData);
+            return $group;
+        }
+        return AuthGroup::create($saveData);
+    }
+
+    protected function syncRoleTemplateGroups()
+    {
+        foreach (array_keys($this->getRoleTemplateDefinitions()) as $templateKey) {
+            $this->ensureRoleTemplateGroup($templateKey);
+        }
+    }
+
+    protected function detectRoleTemplateByGroupIds(array $groupIds, $adminId = 0)
+    {
+        if ($adminId && (int)$adminId === (int)$this->auth->id && $this->auth->isSuperAdmin()) {
+            return 'platform_owner';
+        }
+        $normalized = array_map('intval', $groupIds);
+        sort($normalized);
+        $legacyReviewerGroup = AuthGroup::get(['name' => __('Role group school reviewer')]);
+        if ($legacyReviewerGroup && in_array((int)$legacyReviewerGroup['id'], $normalized, true) && count($normalized) === 1) {
+            return 'school_manager';
+        }
+        foreach ($this->getRoleTemplateDefinitions() as $templateKey => $definition) {
+            $group = AuthGroup::get(['name' => $definition['group_name']]);
+            if ($group && in_array((int)$group['id'], $normalized, true) && count($normalized) === 1) {
+                return $templateKey;
+            }
+        }
+        return empty($normalized) ? '' : 'legacy_custom';
+    }
+
+    protected function getRoleTemplateText($templateKey)
+    {
+        if ($templateKey === 'platform_owner') {
+            return __('Role template platform owner');
+        }
+        $definitions = $this->getRoleTemplateDefinitions();
+        if (isset($definitions[$templateKey])) {
+            return $definitions[$templateKey]['label'];
+        }
+        return __('Role template legacy custom');
+    }
+
+    protected function resolveAdminGroupIds($params, $adminId = 0)
+    {
+        $templateKey = isset($params['role_template']) ? trim((string)$params['role_template']) : '';
+        if ($templateKey === 'legacy_custom' && $adminId) {
+            $groupIds = $this->getExistingAdminGroupIds($adminId);
+            $groupIds = array_intersect($this->childrenGroupIds, array_map('intval', $groupIds));
+            if (!$groupIds) {
+                exception(__('Please select role template'));
+            }
+            return $groupIds;
+        }
+        if ($templateKey === '') {
+            exception(__('Please select role template'));
+        }
+        $group = $this->ensureRoleTemplateGroup($templateKey);
+        return [(int)$group['id']];
+    }
+
     public function index()
     {
         $this->request->filter(['strip_tags', 'trim']);
@@ -181,6 +329,8 @@ class Admin extends Backend
                 $groups = isset($adminGroupName[$item['id']]) ? $adminGroupName[$item['id']] : [];
                 $item['groups'] = implode(',', array_keys($groups));
                 $item['groups_text'] = implode(',', array_values($groups));
+                $item['role_template'] = $this->detectRoleTemplateByGroupIds(array_keys($groups), $item['id']);
+                $item['role_template_text'] = $this->getRoleTemplateText($item['role_template']);
                 $item['school_id'] = isset($schoolMap[$item['id']]) ? (int)$schoolMap[$item['id']] : 0;
                 $item['school_name'] = $item['school_id'] && isset($schoolNames[$item['school_id']]) ? $schoolNames[$item['school_id']] : '-';
             }
@@ -201,6 +351,8 @@ class Admin extends Backend
                 Db::startTrans();
                 try {
                     $schoolId = isset($params['school_id']) ? $this->validateSchoolId($params['school_id']) : 0;
+                    $group = $this->resolveAdminGroupIds($params);
+                    unset($params['role_template']);
                     unset($params['school_id']);
 
                     if (!Validate::is($params['password'], '\\S{6,30}')) {
@@ -212,12 +364,6 @@ class Admin extends Backend
                     $result = $this->model->validate('Admin.add')->save($params);
                     if ($result === false) {
                         exception($this->model->getError());
-                    }
-
-                    $group = $this->request->post('group/a');
-                    $group = array_intersect($this->childrenGroupIds, $group);
-                    if (!$group) {
-                        exception(__('The parent group exceeds permission limit'));
                     }
 
                     $dataset = [];
@@ -255,6 +401,8 @@ class Admin extends Backend
                 Db::startTrans();
                 try {
                     $schoolId = isset($params['school_id']) ? $this->validateSchoolId($params['school_id'], $row->id) : 0;
+                    $group = $this->resolveAdminGroupIds($params, $row->id);
+                    unset($params['role_template']);
                     unset($params['school_id']);
 
                     if (!empty($params['password'])) {
@@ -280,11 +428,6 @@ class Admin extends Backend
                     }
 
                     model('AuthGroupAccess')->where('uid', $row->id)->delete();
-                    $group = $this->request->post('group/a');
-                    $group = array_intersect($this->childrenGroupIds, $group);
-                    if (!$group) {
-                        exception(__('The parent group exceeds permission limit'));
-                    }
 
                     $dataset = [];
                     foreach ($group as $value) {
@@ -307,8 +450,10 @@ class Admin extends Backend
             $groupids[] = $group['id'];
         }
         $row['school_id'] = $this->hasTable('admin_school') ? (int)AdminSchool::where('admin_id', $row['id'])->where('status', 'normal')->value('school_id') : 0;
+        $row['role_template'] = $this->detectRoleTemplateByGroupIds($groupids, $row['id']);
         $this->view->assign('row', $row);
         $this->view->assign('groupids', $groupids);
+        $this->view->assign('roletemplatedata', $this->getRoleTemplateOptions($row['role_template'] === 'legacy_custom'));
         return $this->view->fetch();
     }
 

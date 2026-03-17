@@ -26,9 +26,7 @@ class Rule extends Backend
     public function _initialize()
     {
         parent::_initialize();
-        if (!$this->auth->isSuperAdmin()) {
-            $this->error(__('Access is allowed only to the super management group'));
-        }
+        $this->error(__('Advanced permission settings are disabled'));
         $this->model = model('AuthRule');
         // 必须将结果集转换为数组
         $ruleList = \think\Db::name("auth_rule")->field('type,condition,remark,createtime,updatetime', true)->order('weigh DESC,id ASC')->select();

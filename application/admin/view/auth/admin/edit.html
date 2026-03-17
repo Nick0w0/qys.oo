@@ -1,20 +1,35 @@
 ﻿<form id="edit-form" class="form-horizontal form-ajax" role="form" data-toggle="validator" method="POST" action="">
     {:token()}
     <div class="form-group">
-        <label class="control-label col-xs-12 col-sm-2">{:__('Group')}:</label>
+        <label class="control-label col-xs-12 col-sm-2">{:__('Role_template')}:</label>
         <div class="col-xs-12 col-sm-8">
-            {:build_select('group[]', $groupdata, $groupids, ['class'=>'form-control selectpicker', 'multiple'=>'', 'data-rule'=>'required'])}
+            {if condition="$row.role_template == 'legacy_custom'"}
+            <select id="c-role_template" name="row[role_template]" class="form-control selectpicker" data-rule="required">
+                <option value="">{:__('Please select role template')}</option>
+                {foreach name="roletemplatedata" item="vo" key="key"}
+                <option value="{$key|htmlentities}" {eq name="key" value="$row.role_template"}selected{/eq}>{$vo|htmlentities}</option>
+                {/foreach}
+            </select>
+            {else /}
+            <input type="hidden" name="row[role_template]" value="school_manager" />
+            <input type="text" class="form-control" value="{:__('Role template school manager')}" readonly />
+            {/if}
+            <p class="help-block">{:__('Role template help')}</p>
+            {if condition="$row.role_template == 'legacy_custom'"}
+            <p class="help-block" style="color:#a94442;">{:__('Role template legacy custom desc')}</p>
+            {/if}
         </div>
     </div>
     <div class="form-group">
         <label class="control-label col-xs-12 col-sm-2">{:__('School')}:</label>
         <div class="col-xs-12 col-sm-8">
-            <select id="c-school_id" name="row[school_id]" class="form-control selectpicker">
+            <select id="c-school_id" name="row[school_id]" class="form-control selectpicker" data-rule="required">
                 <option value="">{:__('Please select school')}</option>
                 {foreach name="schooldata" item="vo" key="key"}
                 <option value="{$key|htmlentities}" {eq name="key" value="$row.school_id"}selected{/eq}>{$vo|htmlentities}</option>
                 {/foreach}
             </select>
+            <p class="help-block">{:__('School bind help')}</p>
         </div>
     </div>
     <div class="form-group">

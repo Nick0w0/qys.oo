@@ -459,6 +459,12 @@ class Auth extends \fast\Auth
             ->order('weigh', 'desc')
             ->cache("__menu__")
             ->select())->toArray();
+        $hiddenRuleNames = ['auth/group', 'auth/rule'];
+        foreach ($ruleList as $index => $rule) {
+            if (in_array(strtolower($rule['name']), $hiddenRuleNames, true)) {
+                unset($ruleList[$index]);
+            }
+        }
         $indexRuleList = \app\admin\model\AuthRule::where('status', 'normal')
             ->where('ismenu', 0)
             ->where('name', 'like', '%/index')

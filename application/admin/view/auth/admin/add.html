@@ -1,9 +1,11 @@
 ﻿<form id="add-form" class="form-horizontal form-ajax" role="form" data-toggle="validator" method="POST" action="">
     {:token()}
     <div class="form-group">
-        <label class="control-label col-xs-12 col-sm-2">{:__('Group')}:</label>
+        <label class="control-label col-xs-12 col-sm-2">{:__('Role_template')}:</label>
         <div class="col-xs-12 col-sm-8">
-            {:build_select('group[]', $groupdata, null, ['class'=>'form-control selectpicker', 'multiple'=>'', 'data-rule'=>'required'])}
+            <input type="hidden" name="row[role_template]" value="school_manager" />
+            <input type="text" class="form-control" value="{:__('Role template school manager')}" readonly />
+            <p class="help-block">{:__('Role template help')}</p>
         </div>
     </div>
     <div class="form-group">
@@ -15,6 +17,7 @@
                 <option value="{$key|htmlentities}">{$vo|htmlentities}</option>
                 {/foreach}
             </select>
+            <p class="help-block">{:__('School bind help')}</p>
         </div>
     </div>
     <div class="form-group">
