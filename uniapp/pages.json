@@ -35,7 +35,7 @@
 	{
 	  "path": "pages/plugin/gate",
 	  "style": {
-	    "navigationBarTitleText": "欢迎加入"
+	    "navigationBarTitleText": "登录"
 	  }
 	},
 	{

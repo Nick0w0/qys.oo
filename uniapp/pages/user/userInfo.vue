@@ -25,10 +25,18 @@
 						<input type="nickname" v-model="nickname" class="weui-input" placeholder="请输入昵称"/>
 					</view>
 				</view>
-				<view class="item flex_layout">
-					<view class="left">手机号：</view>
+				<view class="item item-bio">
+					<view class="left">简介：</view>
 					<view class="right">
-						<input type="number" v-model="mobile" class="weui-input" placeholder="请输入手机号"/>
+						<view class="bio-shell">
+							<textarea
+								v-model="bio"
+								class="bio-textarea"
+								maxlength="60"
+								placeholder="介绍一下你自己吧"
+							></textarea>
+						</view>
+						<view class="bio-count">{{ bioLength }}/60</view>
 					</view>
 				</view>
 				<view class="item flex_layout justify-between">
@@ -89,10 +97,16 @@
 				avatar:'',
 				nickname:'',
 				mobile:'',
+				bio:'',
 				userInfo:[],
 				maxCount:1,
 				imgList:[],
 				gender:0
+			}
+		},
+		computed:{
+			bioLength(){
+				return String(this.bio || '').length;
 			}
 		},
 		onLoad() {
@@ -108,6 +122,9 @@
 			this.refreshUser()
 		},
 		methods: {
+			isGeneratedAvatar(value){
+				return /^data:image\//i.test(String(value || '').trim());
+			},
 			refreshUser(){
 				//各个版本的登录判断。微信浏览器授权，微信小程序授权，其他h5跳转登陆
 				this.$api.refreshUser(
@@ -116,11 +133,12 @@
 					if(data.code==1){
 						let user=data.data.user;
 						this.refreshAppTheme(user);
-						this.imgList.push(user.avatar)
+						this.imgList = user.avatar ? [user.avatar] : []
 						this.avatarUrl=user.avatar
 						this.mobile=user.mobile
-						this.avatar=user.avatar
+						this.avatar=this.isGeneratedAvatar(user.avatar) ? '' : user.avatar
 						this.nickname=user.nickname
+						this.bio=user.bio || ''
 						this.gender=user.gender
 					}else{
 						this.$common.errorToShow(val.msg);
@@ -177,13 +195,16 @@
 				this.avatar=list.toString()
 			},
 			profile(){
-				var that=this
 				this.$api.profile(
-				 {nickname:this.nickname,avatar:this.avatar,mobile:this.mobile,gender:this.gender},
+				 {
+					nickname:String(this.nickname || '').trim(),
+					avatar:this.isGeneratedAvatar(this.avatar) ? '' : this.avatar,
+					bio:String(this.bio || '').trim(),
+					gender:this.gender
+				 },
 				data => {
 					if(data.code==1){
 						this.$common.normalToShow(data.msg,function(){
-							//that.$common.navigateBack();
 							uni.navigateBack()
 						})
 					}else{
@@ -213,9 +234,46 @@
 				}
 				button::after{display: none;}
 				.right{
+					flex: 1;
 					button{margin: 0;padding: 0;}
 				}
 				.right input{width: 510rpx;color: #333;font-size: 28rpx;padding-left: 20rpx;text-align: right;}
+				.bio-shell{
+					width: 100%;
+				}
+				.bio-textarea{
+					width: 100%;
+					min-height: 120rpx;
+					padding: 20rpx 22rpx;
+					box-sizing: border-box;
+					border-radius: 18rpx;
+					background: #ffffff;
+					box-shadow: inset 0 0 0 1rpx #edf2f7;
+					font-size: 28rpx;
+					line-height: 1.65;
+					letter-spacing: 0.5rpx;
+					color: #333;
+					text-align: left;
+				}
+				.bio-count{
+					margin-top: 10rpx;
+					padding-right: 4rpx;
+					font-size: 20rpx;
+					line-height: 1;
+					text-align: right;
+					color: #94a3b8;
+				}
+			}
+			.item-bio{
+				display: block;
+				padding-top: 24rpx;
+				.left{
+					width: auto;
+					margin-bottom: 12rpx;
+				}
+				.right{
+					width: 100%;
+				}
 			}
 		}
 	}

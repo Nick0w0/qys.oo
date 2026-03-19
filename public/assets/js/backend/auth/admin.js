@@ -16,7 +16,9 @@
 
             table.on('post-body.bs.table', function () {
                 $('tbody tr[data-index]', this).each(function () {
-                    if (parseInt($('td:eq(1)', this).text()) === Config.admin.id) {
+                    var rowIndex = parseInt($(this).attr('data-index'), 10);
+                    var row = table.bootstrapTable('getData')[rowIndex] || {};
+                    if (parseInt(row.id, 10) === Config.admin.id) {
                         $('input[type=checkbox]', this).prop('disabled', true);
                     }
                 });
@@ -27,15 +29,10 @@
                 columns: [
                     [
                         {field: 'state', checkbox: true},
-                        {field: 'id', title: 'ID'},
                         {field: 'username', title: __('Username')},
                         {field: 'nickname', title: __('Nickname')},
-                        {field: 'role_template_text', title: __('Role_template'), operate: false, formatter: Table.api.formatter.label},
                         {field: 'school_name', title: __('School_name'), operate: 'LIKE'},
-                        {field: 'email', title: __('Email')},
-                        {field: 'mobile', title: __('Mobile')},
                         {field: 'status', title: __('Status'), searchList: {'normal': __('Normal'), 'hidden': __('Hidden')}, formatter: Table.api.formatter.status},
-                        {field: 'logintime', title: __('Login time'), formatter: Table.api.formatter.datetime, operate: 'RANGE', addclass: 'datetimerange', sortable: true},
                         {
                             field: 'operate',
                             title: __('Operate'),

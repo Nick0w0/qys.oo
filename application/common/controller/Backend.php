@@ -119,7 +119,6 @@ class Backend extends Controller
         $modulename = $this->request->module();
         $controllername = Loader::parseName($this->request->controller());
         $actionname = strtolower($this->request->action());
-
         $path = str_replace('.', '/', $controllername) . '/' . $actionname;
 
         // 定义是否Addtabs请求

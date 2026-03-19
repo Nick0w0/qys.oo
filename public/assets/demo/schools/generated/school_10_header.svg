@@ -1,0 +1,16 @@
+<svg width="1200" height="420" viewBox="0 0 1200 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="420" fill="url(#bg)"/>
+  <circle cx="1080" cy="72" r="160" fill="rgba(255,255,255,0.14)"/>
+  <circle cx="930" cy="186" r="110" fill="rgba(255,255,255,0.08)"/>
+  <circle cx="154" cy="338" r="214" fill="rgba(255,255,255,0.08)"/>
+  <path d="M0 298C146 275 333 242 500 261C689 282 897 389 1200 334V420H0V298Z" fill="rgba(255,255,255,0.16)"/>
+  <path d="M0 330C170 306 311 301 454 318C652 341 821 391 1200 350V420H0V330Z" fill="rgba(255,255,255,0.10)"/>
+  <text x="84" y="168" fill="#FFFFFF" font-size="54" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-weight="700">闽江学院</text>
+  <text x="84" y="222" fill="rgba(255,255,255,0.88)" font-size="24" font-family="Microsoft YaHei, PingFang SC, sans-serif">校园社区 · 福州市</text>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1103" y2="420" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B7D0FF"/>
+      <stop offset="1" stop-color="#2D5BDB"/>
+    </linearGradient>
+  </defs>
+</svg>

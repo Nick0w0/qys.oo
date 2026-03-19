@@ -2,6 +2,10 @@
 
 return [
     'Id'             => 'ID',
+    'School_name'    => '所属学校',
+    'Discover_count' => '发帖数',
+    'Comment_count'  => '评论数',
+    'Last_discover_time' => '最近发帖时间',
     'Group_id'       => '组别ID',
     'Username'       => '用户名',
     'Nickname'       => '昵称',

@@ -12,6 +12,7 @@ use app\admin\model\discover\Comment;
 use app\admin\model\discover\Attentions;
 use app\admin\model\discover\Collect;
 use app\admin\model\discover\Log;
+use app\admin\model\discover\Report;
 use think\Db;
 use think\Config;
 
@@ -43,6 +44,7 @@ class Base extends Api
         $this->attentionsModel=new Attentions;
         $this->collectModel=new Collect;
         $this->logModel=new Log;
+        $this->reportModel=new Report;
         $this->user_id = $this->auth->id;
         $this->serverImgHost=($this->isHTTPS() ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'];
     }
@@ -91,6 +93,11 @@ class Base extends Api
     protected function hasDiscoverModerationSchema()
     {
         return $this->hasColumn('discover', 'audit_status') && $this->hasColumn('discover', 'is_top');
+    }
+
+    protected function hasDiscoverReportSchema()
+    {
+        return $this->hasTable('discover_report');
     }
 
     protected function getDiscoverBlockedWords()
@@ -372,7 +379,7 @@ class Base extends Api
                        ->order('discover.createtime','desc')
                        ->field('discover.id,discover.content as content,discover.coverimage as image_url,discover.coverimages as image_urlLists,discover.tag_ids as type,discover.title,discover.description as text,discover.user_id,discover.school_id,discover.favorNum,discover.commentNum,discover.createtime,user.nickname,user.avatar')
                        ->paginate($limit)
-			           ->each(function($lists, $key){
+			           ->each(function($lists, $key) use ($user_id){
 			               $lists['image_url'] = !empty($lists->image_url) ? cdnUrl($lists->image_url, true) : '';
                            $imageList = !empty($lists->image_urlLists)
                                ? explode(',', $lists->image_urlLists)
@@ -408,6 +415,12 @@ class Base extends Api
                           }
                           $lists['title']=mb_substr($lists->title, 0, 50, 'utf-8').$endt;
                           $lists['text']=mb_substr($lists->text, 0, 50, 'utf-8').$endc;
+                          $lists['isattention'] = 0;
+                          $lists['can_follow_author'] = 0;
+                          if ($user_id > 0) {
+                              $lists['isattention'] = $this->isAttentionMethod($lists['user_id']) ? 1 : 0;
+                              $lists['can_follow_author'] = intval($lists['user_id']) !== intval($user_id) ? 1 : 0;
+                          }
                           $lists['index']=$key;
 			              return $lists;
 			           });
@@ -430,7 +443,7 @@ class Base extends Api
           $page=$this->request->request('page');
           $limit=$this->request->request('limit')?$this->request->request('limit'):10;
           $user_id=$this->auth->id;
-          $scopeSchoolId = $this->getScopeSchoolId(0, true);
+          $this->getScopeSchoolId(0, true);
           $where=[];
           $attention_lists=Db::name('discover_attentions')->where('user_id',$user_id)->select();
           $attention_ids=array_column($attention_lists, 'attention_id');
@@ -446,9 +459,6 @@ class Base extends Api
           if ($this->hasDiscoverModerationSchema()) {
             $where['audit_status']='approved';
           }
-          if ($this->hasDiscoverSchoolSchema() && $scopeSchoolId > 0) {
-            $where['school_id']=$scopeSchoolId;
-          }
           $discoverCount=Db::name('discover')->alias('A')->join('user B','A.user_id=B.id')->where($where)->count();
           $discoverList=Db::name('discover')->alias('A')->join('user B','A.user_id=B.id')->where($where)->page($page,$limit)->order('A.createtime','desc')->field('A.*,from_unixtime(A.createtime,"%Y-%m-%d %H:%i") as createtime,B.nickname,B.avatar')->select();
           $data['list']=$discoverList;
@@ -462,7 +472,9 @@ class Base extends Api
               if($this->is_url($value['avatar'])==2){
                 $data['list'][$key]['avatar']=cdnUrl($value['avatar'],true);
               }
-              $data['list'][$key]['coverimages']=explode(',', $value['coverimages']);
+              $data['list'][$key]['coverimages']=array_values(array_filter(explode(',', (string)$value['coverimages']), function ($media) {
+                return trim((string)$media) !== '';
+              }));
               foreach ($data['list'][$key]['coverimages']as $kk => $vv) {
                 $data['list'][$key]['coverimages'][$kk]=cdnUrl($vv,true);
               }
@@ -522,9 +534,11 @@ class Base extends Api
          $favorCount=$this->favorModel->where(['discover_id'=>$id,'typedata'=>1])->count();
          $commentCount=$this->commentModel->where(['discover_id'=>$id,'statusdata'=>1])->count();
          $this->discoverModel->where('id', $id)->setInc('browse');
-         $typeList['coverimage']=cdnUrl($typeList['coverimage'],true);
+         $typeList['coverimage']=$typeList['coverimage'] ? cdnUrl($typeList['coverimage'],true) : '';
          $coverPicVideos=[];
-         $typeList['coverimages_']=explode(',',$typeList['coverimages']);
+         $typeList['coverimages_']=array_values(array_filter(explode(',', (string)$typeList['coverimages']), function ($media) {
+            return trim((string)$media) !== '';
+         }));
          foreach ($typeList['coverimages_'] as $key => $value) {
               $typeList['coverimages_'][$key]=cdnUrl($value,true);
               $picNames = strrchr($value,'.');
@@ -543,6 +557,8 @@ class Base extends Api
          $typeList['favorNum']=$favorCount;
          $typeList['isFavor']=0;
          $typeList['isAttention']=0;
+         $typeList['viewer_user_id']=$user_id;
+         $typeList['canFollowAuthor']=($user_id > 0 && intval($typeList['user_id']) !== intval($user_id)) ? 1 : 0;
          if($this->is_url($typeList['avatar'])==0){
                $typeList['avatar']=letter_avatar($typeList['nickname']);
          }
@@ -647,21 +663,22 @@ class Base extends Api
     $data=$this->favorModel->where($where)->find();
     if($data){
        $this->favorModel->where($where)->delete();
-       if($this->discoverModel->where('id',$discover_id)->value('favorNum')>0){
-          $this->discoverModel->where('id',$discover_id)->setDec('favorNum');
+       if($type==1){
+          $favorCount = $this->favorModel->where(['discover_id'=>$discover_id,'typedata'=>1])->count();
+          $this->discoverModel->where('id',$discover_id)->update(['favorNum'=>$favorCount]);
+       }else{
+          $favorCount = $this->favorModel->where(['comment_id'=>$comment_id,'typedata'=>2])->count();
        }
-       $favorCount = $this->favorModel->where($where)->count();
        $this->success('取消点赞', ['favorNum' => $favorCount]);
     }else{
        $res=$this->favorModel->save($where);
        if($res){
          if($type==1){
-           $this->discoverModel->where('id',$discover_id)->setInc('favorNum');
            $logData['typedata']=1;
            $logData['user_id']=$zan_user_id;
            $logData['create_id']=$user_id;
            $logData['discover_id']=$discover_id;
-           $logData['content']='赞了你的作品';
+          $logData['content']='赞了你的动态';
            $logData['remind']='{"discover_id":'.$discover_id.',"favor_id":'.$this->favorModel->id.',"attention_id":"","comment_id":""}';
          }
          if($type==2){
@@ -679,7 +696,12 @@ class Base extends Api
          }else{
            $this->logModel->allowField(true)->save($logData);
          }
-         $favorCount = $this->favorModel->where($where)->count();
+         if($type==1){
+           $favorCount = $this->favorModel->where(['discover_id'=>$discover_id,'typedata'=>1])->count();
+           $this->discoverModel->where('id',$discover_id)->update(['favorNum'=>$favorCount]);
+         }else{
+           $favorCount = $this->favorModel->where(['comment_id'=>$comment_id,'typedata'=>2])->count();
+         }
          $this->success('赞好啦！', ['favorNum' => $favorCount]);
        }else{
          $this->error('点赞失败！');
@@ -730,7 +752,7 @@ class Base extends Api
         $typedata = 3;
         $logUserId = $comment_user_id;
         $logCommentId = $this->commentModel->id;
-        $logContent = '评论了你的作品';
+        $logContent = '评论了你的动态';
       }else{
         $typedata = 5;
         $logUserId = $commnet_user['user_id'];
@@ -785,6 +807,53 @@ class Base extends Api
         $this->error('出错了，请重试');
       }
     }
+  }
+
+  public function reportDiscover($discover_id, $reason)
+  {
+    if (!$this->hasDiscoverReportSchema()) {
+      $this->error('举报功能未部署，请先执行升级脚本');
+    }
+    $discover_id = (int)$discover_id;
+    $reason = trim((string)$reason);
+    if ($discover_id <= 0 || $reason === '') {
+      $this->error('参数错误');
+    }
+    $user_id = (int)$this->auth->id;
+    if ($user_id <= 0) {
+      $this->error('请先登录');
+    }
+    $scopeSchoolId = $this->getScopeSchoolId(0, true);
+    $discover = $this->assertDiscoverAccessible($discover_id, $scopeSchoolId, true, '该条动态不存在或无权访问');
+    if ((int)$discover['user_id'] === $user_id) {
+      $this->error('不能举报自己的帖子');
+    }
+
+    $exists = $this->reportModel
+      ->where('user_id', $user_id)
+      ->where('discover_id', $discover_id)
+      ->find();
+    if ($exists) {
+      $this->error('你已经举报过这条帖子');
+    }
+
+    $data = [
+      'discover_id' => $discover_id,
+      'discover_user_id' => (int)$discover['user_id'],
+      'user_id' => $user_id,
+      'school_id' => isset($discover['school_id']) ? (int)$discover['school_id'] : $scopeSchoolId,
+      'reason' => mb_substr($reason, 0, 100, 'UTF-8'),
+      'status' => 'pending',
+      'handled_admin_id' => 0,
+      'handled_time' => null,
+      'createtime' => time(),
+      'updatetime' => time(),
+    ];
+    $result = $this->reportModel->allowField(true)->save($data);
+    if ($result) {
+      $this->success('举报已提交');
+    }
+    $this->error('举报失败，请重试');
   }
 
   public function showCommentListsMethod($discover_id,$user_id,$page,$limit=10){
@@ -893,7 +962,7 @@ class Base extends Api
               if($this->is_url($value['avatar'])==2){
                    $data[$key]['avatar']=cdnUrl($value['avatar'],true);
                   }
-              $data[$key]['coverimage']=$this->is_url($value['coverimage'])?$value['coverimage']:cdnUrl($value['coverimage'],true);
+         $data[$key]['coverimage']=$value['coverimage'] ? ($this->is_url($value['coverimage'])?$value['coverimage']:cdnUrl($value['coverimage'],true)) : '';
             }
     $this->success('获取成功',['list'=>$data,'count'=>ceil($dataTotal/$limit)]);
   }
@@ -946,35 +1015,15 @@ class Base extends Api
     if(!isset($discover_id)){
       $this->error('参数错误');
     }
-    //如果discover_id=0;则代表查我所有的作品的点赞情况。
-    if($discover_id==0){
-       $discover_ids=$this->discoverModel->where('user_id',$user_id)->select();
-       $discover_ids=array_column($discover_ids, 'id');
-    }else{
-     $discover_ids=array($discover_id);
-     $where['A.discover_id']=array('in',$discover_ids);
-    }
-    //var_dump($discover_ids);exit;
-    
-    $where['A.user_id']=$user_id;
-    $favorListsCount=$this->favorModel
-                ->alias('A')
-                ->join('user B','A.user_id=B.id')
-                ->where($where)
-                ->count();
-    $favorLists=$this->favorModel
-                ->alias('A')
-                ->join('user B','A.user_id=B.id')
-                ->where($where)
-                ->order('A.createtime','desc')
-                ->page($page,$limit)
-                ->field('A.*,from_unixtime(A.createtime,"%Y-%m-%d %H:%i") as createtime,B.avatar,B.nickname')
-                ->select();
-
-    if(count($favorLists)){
+    $favorLists = $this->getReceivedFavorRows($user_id, $discover_id ? intval($discover_id) : 0);
+    $favorListsCount = count($favorLists);
+    if($favorListsCount > 0){
+      $offset = max(0, (intval($page) - 1) * intval($limit));
+      $favorLists = array_slice($favorLists, $offset, intval($limit));
       foreach ($favorLists as $key => $value) {
-         $favorLists[$key]['date']=date('Y-m-d',strtotime($value['createtime']));
-         $favorLists[$key]['time']=date('H:i',strtotime($value['createtime']));
+         $favorLists[$key]['createtime']=date('Y-m-d H:i', intval($value['createtime']));
+         $favorLists[$key]['date']=date('Y-m-d', intval($value['createtime']));
+         $favorLists[$key]['time']=date('H:i', intval($value['createtime']));
          if($this->is_url($value['avatar'])==0){
                 $favorLists[$key]['avatar']=letter_avatar($value['nickname']);
               }
@@ -1001,46 +1050,52 @@ class Base extends Api
     if(!isset($type) || $type==''){
        $this->error('参数错误');
     }
+    $where = [];
+    $cid = '';
+    $join = '';
+    $groupFields = '';
     if($type==1){
       $where['A.attention_id']=$user_id;
       $cid='user_id';
-       $attentionsListsCount=$this->attentionsModel
-                ->alias('A')
-                ->join('user B','A.user_id=B.id')
-                ->group($cid)
-                ->where($where)
-                ->count();
-      $attentionsLists=$this->attentionsModel
-                ->alias('A')
-                ->join('user B','A.user_id=B.id')
-                ->group($cid)
-                ->where($where)
-                //->order('A.createtime','desc')
-                ->page($page,$limit)
-                ->field('A.*,from_unixtime(A.createtime,"%Y-%m-%d %H:%i") as createtime,B.avatar,B.nickname')
-                ->select();
+      $join='A.user_id=B.id';
+      $groupFields='A.user_id,B.id,B.avatar,B.nickname';
     }
     if($type==2){
       $where['A.user_id']=$user_id;
       $cid='attention_id';
-       $attentionsListsCount=$this->attentionsModel
-                ->alias('A')
-                ->join('user B','A.attention_id=B.id')
-                ->group($cid)
-                ->where($where)
-                ->count();
-       $attentionsLists=$this->attentionsModel
-                ->alias('A')
-                ->join('user B','A.attention_id=B.id')
-                ->group($cid)
-                ->where($where)
-                //->order('A.createtime','desc')
-                ->page($page,$limit)
-                ->field('A.*,from_unixtime(A.createtime,"%Y-%m-%d %H:%i") as createtime,B.avatar,B.nickname')
-                ->select();
+      $join='A.attention_id=B.id';
+      $groupFields='A.attention_id,B.id,B.avatar,B.nickname';
     }
+    if($cid===''){
+      $this->error('参数错误');
+    }
+    $attentionsListsCount=count($this->attentionsModel
+                ->alias('A')
+                ->where($where)
+                ->group('A.'.$cid)
+                ->column('A.'.$cid));
+    $attentionsLists=$this->attentionsModel
+                ->alias('A')
+                ->join('user B',$join)
+                ->where($where)
+                ->group($groupFields)
+                ->order('max_createtime desc')
+                ->page($page,$limit)
+                ->field('MAX(A.id) as id,B.id as user_id,MAX(A.discover_id) as discover_id,MAX(A.createtime) as max_createtime,from_unixtime(MAX(A.createtime),"%Y-%m-%d %H:%i") as createtime,B.avatar,B.nickname')
+                ->select();
     
     foreach ($attentionsLists as $key => $value) {
+         $timestamp = isset($value['max_createtime']) ? intval($value['max_createtime']) : 0;
+         if(!$timestamp && !empty($value['createtime'])){
+            $timestamp = strtotime($value['createtime']);
+         }
+         if($timestamp){
+            $attentionsLists[$key]['date']=date('Y-m-d',$timestamp);
+            $attentionsLists[$key]['time']=date('H:i',$timestamp);
+         }else{
+            $attentionsLists[$key]['date']='';
+            $attentionsLists[$key]['time']='';
+         }
          if($this->is_url($value['avatar'])==0){
                   $attentionsLists[$key]['avatar']=letter_avatar($value['nickname']);
               }
@@ -1048,17 +1103,8 @@ class Base extends Api
              $attentionsLists[$key]['avatar']=cdnUrl($value['avatar'],true);
             }
     }
-    //var_dump($discover_ids);exit;
-    //
-   
-    if(count($attentionsLists)){
-      foreach ($attentionsLists as $key => $value) {
-         $attentionsLists[$key]['date']=date('Y-m-d',strtotime($value['createtime']));
-         $attentionsLists[$key]['time']=date('H:i',strtotime($value['createtime']));
-      }
-    }
     
-    $this->success('获取成功',['list'=>$attentionsLists,'total'=>ceil($attentionsListsCount/$limit),'count'=>ceil($attentionsListsCount/$limit)]);
+    $this->success('获取成功',['list'=>$attentionsLists,'total'=>ceil($attentionsListsCount/$limit),'count'=>$attentionsListsCount]);
 
   }
   
@@ -1179,7 +1225,7 @@ class Base extends Api
           if($this->is_url($value['avatar'])==2){
              $discoverLists[$key]['avatar']=cdnUrl($value['avatar'],true);
             }
-          $discoverLists[$key]['coverimage']=cdnUrl($value['coverimage'],true);
+          $discoverLists[$key]['coverimage']=$value['coverimage'] ? cdnUrl($value['coverimage'],true) : '';
        }
       if($discoverListsCount>1){
         $numSet=count($discoverLists);
@@ -1256,23 +1302,27 @@ function timediff( $begin_time, $end_time )
      */ 
   public function userDataLists(){
     $user_id=$this->auth->id;
-    //var_dump($discover_ids);exit;
     $where['A.user_id']=$user_id;
-    //喜欢点赞数量统计
-    $favorListsCount=$this->favorModel
-                ->alias('A')
-                ->join('user B','A.user_id=B.id')
-                ->where($where)
-                ->count();
-    $favorLists=$this->favorModel
-                ->alias('A')
-                ->join('user B','A.user_id=B.id')
-                ->where($where)
-                ->group('user_id')
-                //->order('A.id','desc')
-                ->page(1,6)
-                ->field('B.avatar,B.nickname')
-                ->select();
+    $favorRows = $this->getReceivedFavorRows($user_id, 0);
+    $favorListsCount = count($favorRows);
+    $favorLists = [];
+    if($favorListsCount > 0){
+      $favorUserMap = [];
+      foreach ($favorRows as $row) {
+        $senderUserId = intval($row['user_id']);
+        if ($senderUserId <= 0 || isset($favorUserMap[$senderUserId])) {
+          continue;
+        }
+        $favorUserMap[$senderUserId] = [
+          'avatar' => $row['avatar'],
+          'nickname' => $row['nickname']
+        ];
+        if (count($favorUserMap) >= 6) {
+          break;
+        }
+      }
+      $favorLists = array_values($favorUserMap);
+    }
 
      //我关注的数量统计
     $attentionListsCount=$this->attentionsModel
@@ -1339,6 +1389,59 @@ function timediff( $begin_time, $end_time )
     $this->success('获取成功',['favorLists'=>$favorLists,'attentionLists'=>$attentionLists,'beAttentionLists'=>$beAttentionLists,'favorListsCount'=>$favorListsCount,'attentionListsCount'=>$attentionListsCount,'beAttentionListsCount'=>$beAttentionListsCount,'favorTotalCount'=>$favorTotalCount]);
 
   } 
+
+  protected function getReceivedFavorRows($userId, $discoverId = 0)
+  {
+    $userId = intval($userId);
+    $discoverId = intval($discoverId);
+    if ($userId <= 0) {
+      return [];
+    }
+    $rows = [];
+    if ($discoverId > 0) {
+      $postRows = $this->favorModel
+                  ->alias('A')
+                  ->join('user B','A.user_id=B.id')
+                  ->where('A.typedata', '1')
+                  ->where('A.discover_id', $discoverId)
+                  ->where('A.user_id', '<>', $userId)
+                  ->field('A.id,A.typedata,A.discover_id,A.comment_id,A.user_id,A.createtime,B.avatar,B.nickname')
+                  ->select();
+      $rows = array_merge($rows, collection($postRows)->toArray());
+    } else {
+      $discoverIds = $this->discoverModel->where('user_id', $userId)->column('id');
+      $commentIds = $this->commentModel->where('user_id', $userId)->column('id');
+      if (!empty($discoverIds)) {
+        $postRows = $this->favorModel
+                    ->alias('A')
+                    ->join('user B','A.user_id=B.id')
+                    ->where('A.typedata', '1')
+                    ->where('A.discover_id', 'in', $discoverIds)
+                    ->where('A.user_id', '<>', $userId)
+                    ->field('A.id,A.typedata,A.discover_id,A.comment_id,A.user_id,A.createtime,B.avatar,B.nickname')
+                    ->select();
+        $rows = array_merge($rows, collection($postRows)->toArray());
+      }
+      if (!empty($commentIds)) {
+        $commentRows = $this->favorModel
+                    ->alias('A')
+                    ->join('user B','A.user_id=B.id')
+                    ->where('A.typedata', '2')
+                    ->where('A.comment_id', 'in', $commentIds)
+                    ->where('A.user_id', '<>', $userId)
+                    ->field('A.id,A.typedata,A.discover_id,A.comment_id,A.user_id,A.createtime,B.avatar,B.nickname')
+                    ->select();
+        $rows = array_merge($rows, collection($commentRows)->toArray());
+      }
+    }
+    if (empty($rows)) {
+      return [];
+    }
+    usort($rows, function ($left, $right) {
+      return intval($right['createtime']) - intval($left['createtime']);
+    });
+    return $rows;
+  }
 /**
 把用户输入的文本转义（主要针对特殊符号和emoji表情）
 */

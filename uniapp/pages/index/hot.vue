@@ -1,78 +1,71 @@
 <template>
-	<view :style="themeVarsStyle">
-		<cu-custom bgColor=" bg-gradual-purple"><block slot="content">关注动态</block></cu-custom>
-
-		<view class="cu-card dynamic" v-for="(item,index) in attentionDataLists" :key="index">
-			<view class="cu-item shadow">
-				<view class="cu-list menu-avatar">
-					<view class="cu-item">
-						<view class="cu-avatar round lg" v-if="item.avatar!=''" :style="{'background-image':'url('+item.avatar+')'}"  :data-id="item.id" @click="detail"></view>
-						<view class="cu-avatar round lg" v-else style="background-image: url(../../static/images/avatar.png);"  :data-id="item.id" @click="detail"></view>
-						<view class="content flex-sub"  :data-id="item.id" @click="detail">
-							<view>{{item.nickname}}</view>
-							<view class="text-gray text-sm flex justify-between">
-								{{item.createtime}}
-							</view>
-						</view>
-						<view class="action">
-							<button class="cu-btn light sm feed-follow-btn" :data-id='item.id' :data-userid='item.user_id' @tap="doAttentionDataOp" :class="item.isattention?'bg-red':'bg-grey'" data-target="gridModal"><text class="cuIcon-attentionfavorfill margin-right-xs" :class="item.isattention?'text-red':'text-grey'"></text><text>{{ item.isattention ? '已关注' : '关注' }}</text></button> 
-						</view>
-					</view>
-				</view>
-				<view class="margin-top-sm text-black padding-sm" :data-id="item.id" @click="detail">
-					{{item.content}}
-				</view>
-				<view class="grid flex-sub padding-lr grid-square" :class="item.coverimages.length>1?'col-3':'col-1'">
-					<view class="bg-img" v-for="(item2,index2) in item.coverimages" :key="index2" :data-index='index' :data-index2="index2" :style="{'background-image':'url('+item2+')'}" @click="previewImage">
-					</view>
-				</view>
-				<view class="grid justify-end text-gray text-sm padding solids-bottom">
-					<text class="cuIcon-attentionfill margin-lr-xs"></text> {{item.browse}}
-					<!--点赞-->
-					<view data-type='1' :data-id='item.id' :data-index='index' data-index2='0' @click="dolikeDataOp">
-						<text class="cuIcon-appreciatefill margin-lr-xs" :class="item.isfavor==1?'text-red':''"></text> {{item.favorNum}}
-					</view>
-					
-					<text class="cuIcon-messagefill margin-lr-xs"  :data-id="item.id" @click="detail"></text> {{item.commentNum}}
-				</view>
-
-				<view class="cu-list menu-avatar comment solids-top" v-if="item.comment_lists.length>0"  :data-id="item.id" @click="detail">
-					<view class="cu-item" v-for="(item3,index3) in item.comment_lists" :key="index3">
-						<view class="cu-avatar round" v-if="item3.avatar!=''" :style="{'background-image':'url('+item3.avatar+')'}"></view>
-						<view class="cu-avatar round" v-else style="background-image: url(../../static/images/avatar.png);"></view>
-						
-						<view class="content">
-							<view class="text-grey">{{item3.nickname}}</view>
-							<view class="text-gray text-content text-df">
-								<!-- {{item3.content}} -->
-								<rich-text :nodes="item3.content"></rich-text>
-							</view>
-							<view class="bg-text-grey margin-top-sm" v-if="item3.replyLists.length>0">
-							<block v-for="(item4,index4) in item3.replyLists" :key="index4">
-								<view class="text-greyradius text-sm">
-									<view class="flex justify-between">
-										<view><text class="text-purple">{{item4.rnickname}}</text>回复<text class="text-grey">{{item4.nickname}}</text>：
-										</view>
-										<text class="text-grey text-sm">{{item4.createtime}}</text>
-									</view>
-									<rich-text class="padding-tb-sm  block " :nodes="item4.content"></rich-text><!-- {{item2.content}} -->
-								</view>
-							</block>
-							</view>
-							<view class="margin-top-sm flex justify-between text-gray">
-								<view class="text-gray text-df">{{item3.createtime}}</view>
-								<view>
-									<text class="cuIcon-appreciatefill" data-type='2' :data-id="item.id" :data-commentid='item3.id' :data-index='index' :data-index2='index3' :class="item3.isfavor==1?'text-red':'text-gray'" @click="dolikeDataOp"></text> {{item3.favorCount}}
-									<text class="cuIcon-messagefill text-gray margin-left-sm"></text>{{item3.commentCount}}
-								</view>
-							</view>
-						</view>
-					</view>
-
-				</view>
+	<view class="follow-feed-page" :style="themeVarsStyle">
+		<view class="follow-topbar" :style="followTopbarStyle">
+			<view class="follow-topbar__main">
+				<view class="follow-topbar__name">{{ followPageTitle }}</view>
 			</view>
 		</view>
-		<view class="text-center text-gray padding-tb-sm" :class="showNoResult?'show':'hide'">我是有底线的...</view>
+
+		<view class="follow-feed-body" :style="followBodyStyle">
+			<block v-if="attentionDataLists.length > 0">
+				<view class="follow-card" v-for="(item,index) in attentionDataLists" :key="index">
+					<view class="follow-card__header">
+						<view class="follow-card__avatar cu-avatar round lg" v-if="item.avatar!=''" :style="{'background-image':'url('+item.avatar+')'}" :data-id="item.id" @tap="detail"></view>
+						<view class="follow-card__avatar cu-avatar round lg" v-else style="background-image: url(../../static/images/avatar.png);" :data-id="item.id" @tap="detail"></view>
+						<view class="follow-card__meta flex-sub" :data-id="item.id" @tap="detail">
+							<view class="follow-card__name-row">
+								<view class="follow-card__name text-cut">{{item.nickname}}</view>
+								<view class="follow-card__time">{{item.createtime}}</view>
+							</view>
+						</view>
+					</view>
+
+					<view class="follow-card__content" :data-id="item.id" @tap="detail">
+						{{item.content}}
+					</view>
+
+					<view
+						v-if="item.coverimages && item.coverimages.length"
+						class="follow-card__gallery"
+						:class="getCoverLayoutClass(item.coverimages)"
+					>
+						<view
+							class="follow-card__image"
+							v-for="(item2,index2) in item.coverimages"
+							:key="index2"
+							:data-index="index"
+							:data-index2="index2"
+							:style="{'background-image':'url('+item2+')'}"
+							@tap.stop="previewImage"
+						></view>
+					</view>
+
+					<view class="follow-card__stats">
+						<view class="follow-card__stat">
+							<text class="cuIcon-attentionfill"></text>
+							<text>{{item.browse}}</text>
+						</view>
+						<view class="follow-card__stat" data-type="1" :data-id="item.id" :data-index="index" data-index2="0" @tap.stop="dolikeDataOp">
+							<text class="cuIcon-appreciatefill" :class="item.isfavor==1?'text-red':''"></text>
+							<text>{{item.favorNum}}</text>
+						</view>
+						<view class="follow-card__stat" :data-id="item.id" @tap="detail">
+							<text class="cuIcon-messagefill"></text>
+							<text>{{item.commentNum}}</text>
+						</view>
+					</view>
+
+				</view>
+			</block>
+
+			<view class="follow-empty" v-else-if="showNoResult">
+				<view class="follow-empty__icon cuIcon-attentionfavor"></view>
+				<view class="follow-empty__title">还没有关注动态</view>
+				<view class="follow-empty__desc">去关注一些同学，新的动态会显示在这里</view>
+			</view>
+
+			<view class="follow-feed-end text-center text-gray padding-tb-sm" v-if="attentionDataLists.length > 0 && showNoResult">已经到底了</view>
+		</view>
 		 <colorbar footerTab="1" :messageCount="messageCount"></colorbar>
 	</view>
 </template>
@@ -96,15 +89,38 @@
 				loading:true,
 				showNoResult:false,
 				user:[],
-				messageCount:0
+				messageCount:0,
+				statusBarHeight:0,
+				topbarHeight:50,
+				topbarBottomGap:0
 				
 			};
+		},
+		computed:{
+			schoolInfo(){
+				return this.user && this.user.school_info ? this.user.school_info : {};
+			},
+			followPageTitle(){
+				return '关注动态';
+			},
+			followTopbarStyle(){
+				return {
+					paddingTop: this.statusBarHeight + 'px',
+					height: (this.statusBarHeight + this.topbarHeight) + 'px'
+				};
+			},
+			followBodyStyle(){
+				return {
+					paddingTop: (this.statusBarHeight + this.topbarHeight + this.topbarBottomGap + 6) + 'px'
+				};
+			}
 		},
 		mounted() {
 			_this=this;
 		},
 		onLoad() {
 			page=1;
+			this.initTopbarMetrics();
 		},
 		onShow() {
 			this.user = this.$common.userInfo();
@@ -135,6 +151,20 @@
 			}
 		},
 		methods: {
+			initTopbarMetrics(){
+				let statusBarHeight=Number(this.StatusBar || 0);
+				let systemInfo={};
+				try{
+					systemInfo=uni.getSystemInfoSync() || {};
+				}catch(error){
+					systemInfo={};
+				}
+				if(!statusBarHeight){
+					statusBarHeight=Number(systemInfo.statusBarHeight || 0);
+				}
+				this.statusBarHeight=statusBarHeight;
+
+			},
 			//处理表情编号（处理成带img标签）
 			handleImg(content){
 				var a=content.match(/\[em_([0-97]*)]/g);
@@ -155,15 +185,19 @@
 					{page:page,limit:10},
 					data => {
 						console.log(data);
-						var res=data.data;
-						if(res.list.length<10){
-							_this.showNoResult=true;
-						}
 						if (data.code == 1) {
+							var res=data.data || {};
+							var list=Array.isArray(res.list)?res.list:[];
+							if(list.length<10){
+								_this.showNoResult=true;
+							}
 							page++;
-							_this.attentionDataLists=_this.attentionDataLists.concat(res.list);
+							_this.attentionDataLists=_this.attentionDataLists.concat(list);
 							_this.attentionDataLists=_this.attentionDataLists.map(item=>{
+								item.coverimages=Array.isArray(item.coverimages)?item.coverimages.filter(Boolean):[];
+								item.comment_lists=Array.isArray(item.comment_lists)?item.comment_lists:[];
 								item.comment_lists=item.comment_lists.map(items=>{
+									items.replyLists=Array.isArray(items.replyLists)?items.replyLists:[];
 									return {
 										...items,
 										content:this.handleImg(items.content)
@@ -177,10 +211,25 @@
 							_this.totalPage=res.total_page;
 							
 						}else{
-							_this.$common.errorToShow(data.msg);
+							if(page===1){
+								_this.showNoResult=true;
+							}
+							if(data.msg!='暂无数据'){
+								_this.$common.errorToShow(data.msg);
+							}
 						}
 					}
 					)  
+			},
+			getCoverLayoutClass(images){
+				var length=Array.isArray(images)?images.length:0;
+				if(length<=1){
+					return 'is-single';
+				}
+				if(length===2){
+					return 'is-double';
+				}
+				return 'is-grid';
 			},
 			//作品/评论点赞
 			   /**
@@ -327,23 +376,181 @@
 							}
 				})
 			 },
+			openSearch(){
+				this.$common.navigateTo('/pages/index/search');
+			}
 		}
 	}
 </script>
 
 <style>
-
-.feed-follow-btn{
-    min-width: 132rpx;
-    padding: 0 20rpx !important;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    white-space: nowrap;
-    box-sizing: border-box;
+.follow-feed-page{
+	min-height: 100vh;
+	background: #f4f6fb;
 }
-.feed-follow-btn text{
-    white-space: nowrap;
+
+.follow-topbar{
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	z-index: 30;
+	display:flex;
+	align-items:center;
+	padding: 0 24rpx;
+	box-sizing: border-box;
+	background:#ffffff;
+	border-bottom: 1rpx solid rgba(226, 232, 240, 0.72);
+}
+
+.follow-topbar__main{
+	flex:1;
+	min-width:0;
+	height: 100%;
+	display: flex;
+	align-items: center;
+}
+
+.follow-topbar__name{
+	font-size: 30rpx;
+	line-height: 1;
+	color:#111827;
+	font-weight: 400;
+	letter-spacing: .6rpx;
+	padding-left: 14rpx;
+}
+
+.follow-feed-body{
+	padding: 0 24rpx 180rpx;
+}
+
+.follow-card{
+	margin-bottom: 24rpx;
+	padding: 28rpx;
+	background: #ffffff;
+	border-radius: 28rpx;
+	box-shadow: 0 12rpx 36rpx rgba(38, 63, 128, 0.08);
+}
+
+.follow-card__header{
+	display: flex;
+	align-items: center;
+}
+
+.follow-card__avatar{
+	flex-shrink: 0;
+	width: 68rpx;
+	height: 68rpx;
+	background-size: cover;
+	background-position: center;
+}
+
+.follow-card__meta{
+	min-width: 0;
+	margin-left: 16rpx;
+}
+
+.follow-card__name-row{
+	display: flex;
+	flex-direction: column;
+	gap: 8rpx;
+}
+
+.follow-card__name{
+	font-size: 26rpx;
+	font-weight: 500;
+	color: #2f3d56;
+}
+
+.follow-card__time{
+	font-size: 20rpx;
+	color: #99a0b0;
+}
+
+.follow-card__content{
+	margin-top: 24rpx;
+	font-size: 26rpx;
+	line-height: 1.8;
+	color: #334155;
+	word-break: break-all;
+}
+
+.follow-card__gallery{
+	display: grid;
+	gap: 14rpx;
+	margin-top: 22rpx;
+	justify-content: flex-start;
+}
+
+.follow-card__gallery.is-single{
+	grid-template-columns: 360rpx;
+}
+
+.follow-card__gallery.is-double{
+	grid-template-columns: repeat(2, 220rpx);
+}
+
+.follow-card__gallery.is-grid{
+	grid-template-columns: repeat(3, 180rpx);
+}
+
+.follow-card__image{
+	width: 100%;
+	padding-top: 100%;
+	border-radius: 20rpx;
+	background-color: #edf1fb;
+	background-position: center;
+	background-size: cover;
+	overflow: hidden;
+}
+
+.follow-card__gallery.is-single .follow-card__image{
+	padding-top: 78%;
+}
+
+.follow-card__stats{
+	display: flex;
+	align-items: center;
+	gap: 28rpx;
+	margin-top: 24rpx;
+	padding-top: 22rpx;
+	border-top: 1rpx solid #eef1f7;
+	color: #8a93a6;
+	font-size: 22rpx;
+}
+
+.follow-card__stat{
+	display: inline-flex;
+	align-items: center;
+	gap: 8rpx;
+}
+
+.follow-empty{
+	padding: 120rpx 40rpx 0;
+	text-align: center;
+	color: #8f98aa;
+}
+
+.follow-empty__icon{
+	font-size: 96rpx;
+	color: #9db1f3;
+}
+
+.follow-empty__title{
+	margin-top: 24rpx;
+	font-size: 34rpx;
+	font-weight: 600;
+	color: #33415c;
+}
+
+.follow-empty__desc{
+	margin-top: 14rpx;
+	font-size: 26rpx;
+	line-height: 1.6;
+}
+
+.follow-feed-end{
+	color: #9ea6b5;
 }
 </style>
 

@@ -48,6 +48,10 @@ return [
     'Set audit rejected'       => '设为审核驳回',
     'Set top on'               => '设为置顶',
     'Set top off'              => '取消置顶',
+    'Top now'                  => '置顶',
+    'Untop now'                => '取消置顶',
+    'Confirm top post'         => '确定将这篇帖子设为置顶吗？',
+    'Confirm untop post'       => '确定取消这篇帖子的置顶吗？',
     'Please run phase1 sql first' => '请先执行第一阶段SQL升级脚本',
 ];
 

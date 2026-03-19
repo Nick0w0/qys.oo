@@ -5,7 +5,7 @@ import {
 import * as common from './common.js' //引入common
 import * as db from './db.js' //引入common
 // 需要登陆的，都写到这里，否则就是不需要登陆的接口
-const methodsToken = ['profile','refreshUser','changeMobile','publish','dolike','doComment','doAttention','doAttentionLists','showMessageLists','doMessageRead','doCommentSub','doLikeLists','doCommentLists','userDataLists','doMyDiscoverLists','delData','attentionData','bindSchool'];
+const methodsToken = ['profile','refreshUser','changeMobile','publish','dolike','doComment','doAttention','doAttentionLists','showMessageLists','doMessageRead','doCommentSub','doLikeLists','doCommentLists','userDataLists','doMyDiscoverLists','delData','attentionData','bindSchool','index'];
 const post = (method, data, callback,type) => {
 	let userToken = '';
 	const auth = db.get("auth");
@@ -227,6 +227,8 @@ export const indexData = (data, callback) => post('index', data, callback,'disco
 export const typeData = (data, callback) => post('type', data, callback,'discover/Common');
 // 发现详情
 export const detailData = (data, callback) => post('detail', data, callback,'discover/Common');
+// 举报动态
+export const reportData = (data, callback) => post('report', data, callback,'discover/Common');
 /**
  * 发布 动态
  * @param string $title        标题

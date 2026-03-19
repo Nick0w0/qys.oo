@@ -50,6 +50,8 @@ class User extends Base
         }
         $keyword = trim($this->request->request('keyword', ''));
         $city = trim($this->request->request('city', ''));
+        $latitude = (float)$this->request->request('latitude', 0);
+        $longitude = (float)$this->request->request('longitude', 0);
         $page = max(1, (int)$this->request->request('page', 1));
         $limit = max(1, min(50, (int)$this->request->request('limit', 20)));
         $query = Db::name('school')->where('status', 'normal');
@@ -63,7 +65,29 @@ class User extends Base
                     ->whereOr('area', 'like', '%' . $keyword . '%');
             });
         }
-        $list = $query->order('weigh desc,id desc')->page($page, $limit)->field('id,name,short_name,province,city,area,address')->select();
+        $hasCoordinateSchema = $this->hasColumn('school', 'latitude') && $this->hasColumn('school', 'longitude');
+        $field = 'id,name,short_name,province,city,area,address';
+        if ($hasCoordinateSchema) {
+            $field .= ',latitude,longitude';
+        }
+        $canSortByDistance = $hasCoordinateSchema && $latitude != 0 && $longitude != 0;
+
+        if ($canSortByDistance) {
+            $distanceExpression = sprintf(
+                '(6378137 * 2 * ASIN(SQRT(POW(SIN((latitude * PI() / 180 - %F * PI() / 180) / 2), 2) + COS(%F * PI() / 180) * COS(latitude * PI() / 180) * POW(SIN((longitude * PI() / 180 - %F * PI() / 180) / 2), 2))))',
+                $latitude,
+                $latitude,
+                $longitude
+            );
+            $field .= ',' . $distanceExpression . ' AS distance_meter';
+            $query->field($field)
+                ->orderRaw("CASE WHEN latitude <> 0 AND longitude <> 0 THEN {$distanceExpression} ELSE 99999999 END ASC")
+                ->order('weigh desc,id desc');
+        } else {
+            $query->field($field)->order('weigh desc,id desc');
+        }
+
+        $list = $query->page($page, $limit)->select();
         $this->success('获取成功', ['list' => $list]);
     }
 
@@ -194,12 +218,19 @@ class User extends Base
             })
             ->where(function ($query) use ($now) {
                 $query->where('endtime', 0)->whereOr('endtime', '>=', $now);
+            })
+            ->where(function ($query) {
+                $query->where('jump_type', '<>', 'path')
+                    ->whereOr(function ($subQuery) {
+                        $subQuery->where('jump_type', 'path')
+                            ->where('jump_value', '<>', '/pages/plugin/index');
+                    });
             });
 
         if ($schoolId > 0) {
-            $query->where('school_id', 'in', [0, $schoolId])->order('school_id desc,weigh desc,id desc');
+            $query->where('school_id', $schoolId)->order('weigh desc,id desc');
         } else {
-            $query->where('school_id', 0)->order('weigh desc,id desc');
+            return [];
         }
 
         return $query->limit(max(1, (int)$limit))->select();
@@ -441,13 +472,29 @@ class User extends Base
             $this->error(__('参数错误'));
         }
         $ret = $this->auth->login($account, $password);
-        $userinfo = $this->enrichAuthUserinfo($this->auth->getUserinfo());
         if ($ret) {
+            $userinfo = $this->enrichAuthUserinfo($this->auth->getUserinfo());
             $data = ['userinfo' => $userinfo, 'auth' => $userinfo];
             $this->success(__('登录成功'), $data);
         } else {
-            //$this->error($this->auth->getError());
-            $this->error('登录失败');
+            $message = $this->auth->getError();
+            if (in_array($message, ['Account is incorrect', '账户不正确', '账号不正确'], true)) {
+                $message = Validate::regex($account, "^1\d{10}$") ? '该手机号未注册' : '账号不存在';
+            } elseif (in_array($message, ['Password is incorrect', '密码不正确', '密码错误'], true)) {
+                $message = '密码错误';
+            } elseif (in_array($message, ['Account is locked', '账户已锁定', '账号已锁定'], true)) {
+                $message = '账号已被禁用';
+            } elseif (
+                in_array($message, ['Please try again after 1 day', '请于 1 天后再试', '请于1天后再试'], true)
+                || strpos($message, '1 day') !== false
+                || strpos($message, '1 天') !== false
+                || strpos($message, '1天') !== false
+            ) {
+                $message = '密码错误次数过多，请1天后再试';
+            } elseif (!$message) {
+                $message = '登录失败';
+            }
+            $this->error($message);
         }
     }
 
@@ -548,8 +595,14 @@ class User extends Base
     {
         $user = $this->auth->getUser();
         $data = $this->request->request('');
+        if (isset($data['mobile']) && trim((string)$data['mobile']) !== (string)$user->mobile) {
+            $this->error('手机号暂不支持在此处修改');
+        }
         if(isset($data['avatar'])){
           $avatar = $this->request->request('avatar', '', 'trim,strip_tags,htmlspecialchars');
+          if (preg_match('/^data:image\//i', $avatar)) {
+              $data['avatar'] = '';
+          }
         }
         
         if (isset($data['username'])) {
@@ -568,9 +621,6 @@ class User extends Base
         }
         if (isset($data['bio'])) {
             $user->bio = $data['bio'];
-        }
-        if (isset($data['mobile'])) {
-            $user->mobile = $data['mobile'];
         }
         if (isset($data['gender'])) {
             $user->gender = $data['gender'];

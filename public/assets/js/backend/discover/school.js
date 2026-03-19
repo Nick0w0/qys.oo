@@ -29,6 +29,8 @@
                         {field: 'province', title: __('Province'), operate: 'LIKE'},
                         {field: 'city', title: __('City'), operate: 'LIKE'},
                         {field: 'area', title: __('Area'), operate: 'LIKE'},
+                        {field: 'latitude', title: __('Latitude'), operate: false},
+                        {field: 'longitude', title: __('Longitude'), operate: false},
                         {field: 'status', title: __('Status'), searchList: {'normal': __('Normal'), 'hidden': __('Hidden')}, formatter: Table.api.formatter.status},
                         {field: 'operate', title: __('Operate'), table: table, events: Table.api.events.operate, formatter: Table.api.formatter.operate}
                     ]

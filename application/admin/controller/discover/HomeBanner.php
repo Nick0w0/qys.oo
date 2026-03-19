@@ -22,10 +22,29 @@ class HomeBanner extends Backend
         $this->model = new \app\admin\model\discover\HomeBanner;
         $this->view->assign('statusList', $this->model->getStatusList());
         $this->view->assign('jumpTypeList', $this->model->getJumpTypeList());
+        $this->view->assign('bannerPageOptions', $this->getBannerPageOptions());
         $this->view->assign('schooldata', $this->getSchoolData());
         $this->view->assign('isSuperAdmin', $this->auth->isSuperAdmin());
         $this->view->assign('currentSchoolId', $this->getCurrentSchoolId());
         $this->view->assign('currentSchoolName', $this->getCurrentSchoolName());
+    }
+
+    protected function getBannerPageOptions($currentValue = '')
+    {
+        $options = [
+            '/pages/index/index'      => '首页',
+            '/pages/index/search'     => '搜索页',
+            '/pages/index/hot'        => '关注页',
+            '/pages/plugin/index'     => '选学校页',
+            '/pages/user/message'     => '消息页',
+            '/pages/user/myattentions'=> '我关注的作者',
+            '/pages/user/index'       => '我的页面',
+        ];
+        $currentValue = trim((string)$currentValue);
+        if ($currentValue !== '' && !isset($options[$currentValue])) {
+            $options = [$currentValue => '当前已保存页面'] + $options;
+        }
+        return $options;
     }
 
     protected function hasTable($table)
@@ -35,6 +54,21 @@ class HomeBanner extends Backend
             $fullTable = config('database.prefix') . $table;
             $result = Db::query("SHOW TABLES LIKE '" . addslashes($fullTable) . "'");
             self::$schemaCache[$key] = !empty($result);
+        }
+        return self::$schemaCache[$key];
+    }
+
+    protected function hasColumn($table, $column)
+    {
+        $key = 'column:' . $table . ':' . $column;
+        if (!array_key_exists($key, self::$schemaCache)) {
+            if (!$this->hasTable($table)) {
+                self::$schemaCache[$key] = false;
+            } else {
+                $fullTable = config('database.prefix') . $table;
+                $result = Db::query("SHOW COLUMNS FROM `" . addslashes($fullTable) . "` LIKE '" . addslashes($column) . "'");
+                self::$schemaCache[$key] = !empty($result);
+            }
         }
         return self::$schemaCache[$key];
     }
@@ -130,7 +164,8 @@ class HomeBanner extends Backend
             }
         }
         if ($params['jump_type'] === 'path') {
-            if ($params['jump_value'] === '' || !preg_match('/^\/pages\/[A-Za-z0-9_\/-]+(\?.*)?$/', $params['jump_value'])) {
+            $pageOptions = $this->getBannerPageOptions($params['jump_value']);
+            if ($params['jump_value'] === '' || !isset($pageOptions[$params['jump_value']])) {
                 $this->error(__('Please input valid path'));
             }
         }
@@ -169,6 +204,94 @@ class HomeBanner extends Backend
             return json(['total' => $list->total(), 'rows' => $list->items()]);
         }
         return $this->view->fetch();
+    }
+
+    public function selectDiscover()
+    {
+        $this->request->filter(['trim', 'strip_tags', 'htmlspecialchars']);
+        $this->ensureSchema();
+        if (!$this->hasTable('discover')) {
+            return json(['list' => [], 'totalRow' => 0]);
+        }
+
+        $word = (array)$this->request->request("q_word/a", []);
+        $page = max(1, (int)$this->request->request("pageNumber", 1));
+        $pageSize = max(1, min(20, (int)$this->request->request("pageSize", 10)));
+        $primaryValue = $this->request->request("keyValue");
+        $custom = (array)$this->request->request("custom/a", []);
+        $schoolId = isset($custom['school_id']) ? (int)$custom['school_id'] : 0;
+
+        if (!$this->auth->isSuperAdmin()) {
+            $schoolId = $this->getCurrentSchoolId(true);
+        }
+
+        $fields = $this->getDiscoverSelectFields();
+
+        if ($primaryValue !== null && $primaryValue !== '') {
+            $ids = array_filter(array_unique(array_map('intval', explode(',', (string)$primaryValue))));
+            if (empty($ids)) {
+                return json(['list' => [], 'totalRow' => 0]);
+            }
+            $query = $this->buildDiscoverSelectQuery($schoolId);
+            $query->where('id', 'in', $ids)->orderRaw("FIELD(id," . implode(',', $ids) . ")");
+            $list = $query->field($fields)->select();
+            return json(['list' => $this->formatDiscoverSelectRows($list), 'totalRow' => count($list)]);
+        }
+
+        $keyword = trim(implode(' ', array_filter($word)));
+        $total = $this->buildDiscoverSelectQuery($schoolId, $keyword)->count();
+        $list = $this->buildDiscoverSelectQuery($schoolId, $keyword)
+            ->field($fields)
+            ->order('id desc')
+            ->page($page, $pageSize)
+            ->select();
+        return json(['list' => $this->formatDiscoverSelectRows($list), 'totalRow' => $total]);
+    }
+
+    protected function buildDiscoverSelectQuery($schoolId = 0, $keyword = '')
+    {
+        $query = Db::name('discover');
+
+        if ($schoolId > 0 && $this->hasColumn('discover', 'school_id')) {
+            $query->where('school_id', $schoolId);
+        }
+        if ($this->hasColumn('discover', 'audit_status')) {
+            $query->where('audit_status', 'approved');
+        }
+        if ($keyword !== '') {
+            $query->where(function ($subQuery) use ($keyword) {
+                if (ctype_digit($keyword)) {
+                    $subQuery->where('id', (int)$keyword)->whereOr('title', 'like', '%' . $keyword . '%');
+                } else {
+                    $subQuery->where('title', 'like', '%' . $keyword . '%');
+                }
+            });
+        }
+
+        return $query;
+    }
+
+    protected function getDiscoverSelectFields()
+    {
+        $fields = ['id', 'title'];
+        if ($this->hasColumn('discover', 'school_id')) {
+            $fields[] = 'school_id';
+        }
+        return implode(',', $fields);
+    }
+
+    protected function formatDiscoverSelectRows($rows)
+    {
+        $result = [];
+        foreach ($rows as $item) {
+            $row = is_array($item) ? $item : $item->toArray();
+            $result[] = [
+                'id'        => (int)$row['id'],
+                'title'     => htmlspecialchars((string)$row['title'], ENT_QUOTES, 'UTF-8'),
+                'school_id' => isset($row['school_id']) ? (int)$row['school_id'] : 0,
+            ];
+        }
+        return $result;
     }
 
     public function add()
@@ -212,6 +335,7 @@ class HomeBanner extends Backend
         }
         $this->assertSchoolAccess($row);
         if (false === $this->request->isPost()) {
+            $this->view->assign('bannerPageOptions', $this->getBannerPageOptions($row['jump_type'] === 'path' ? $row['jump_value'] : ''));
             $this->view->assign('row', $row);
             return $this->view->fetch();
         }

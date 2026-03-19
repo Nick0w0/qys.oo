@@ -1,10 +1,15 @@
 ﻿<template>
-	<view :style="themeVarsStyle">
-		<cu-custom bgColor="bg-gradual-purple" :isBack="true">
-			<block slot="backText">返回</block>
-			<block slot="content">发布动态</block>
-		</cu-custom>
-	
+	<view :style="themeVarsStyle" class="publish-page-root">
+		<view class="publish-topbar" :style="publishTopbarStyle">
+			<view class="publish-topbar__back" @tap="goBack">
+				<text class="cuIcon-back"></text>
+				<text>返回</text>
+			</view>
+			<view class="publish-topbar__main">
+				<view class="publish-topbar__name">发布动态</view>
+			</view>
+		</view>
+		<view class="publish-page-body" :style="publishBodyStyle">
 			<view class="cu-form-group margin-top">
 				<input placeholder="请输入动态标题" name="input" @input="textareaAInput"></input>
 			</view>
@@ -82,13 +87,13 @@
 			</view>
 			<view class="cu-form-group margin-top">
 				<view class="title">开启评论</view>
-				<switch @change="SwitchA" :class="SwitchA?'checked':''" :checked="switchA?true:false"></switch>
+				<switch @change="SwitchA" :class="switchA ? 'checked' : ''" :checked="switchA"></switch>
 			</view>
-			<view class="cu-form-group margin-top">
+			<view class="cu-form-group margin-top" v-if="false">
 				<view class="title">展示位置</view>
-				<switch @change="SwitchB" :class="switchB?'checked':''" :checked="switchB?true:false"></switch>
+				<switch @change="SwitchB" :class="switchB ? 'checked' : ''" :checked="switchB"></switch>
 			</view>
-			<view class="cu-form-group margin-top" @tap="chooseLocation" data-target="ChooseModal" v-if="switchB">
+			<view class="cu-form-group margin-top" @tap="chooseLocation" data-target="ChooseModal" v-if="false && switchB">
 				<view class="title">位置信息</view>
 				<view class="action flex-wrap">
 						<block v-if="addresses!=''">
@@ -105,6 +110,7 @@
 					<!-- <button class="cu-btn bg-green shadow-blur round">保存</button> -->
 					<button class="cu-btn bg-purple shadow-blur round" @click="publishForm()"><text class="cuIcon-cameraadd"></text></text> 发布动态</button>
 				</view>
+		</view>
 	</view>
 </template>
 
@@ -141,15 +147,32 @@
 				addresses:'',
 				tag_ids:'',
 				publishSwitch:true,//防止重复点击
-				shortImgUrl:[]
+				shortImgUrl:[],
+				statusBarHeight:0,
+				topbarHeight:50,
+				topbarBottomGap:0
 				
 			};
+		},
+		computed:{
+			publishTopbarStyle(){
+				return {
+					paddingTop: this.statusBarHeight + 'px',
+					height: (this.statusBarHeight + this.topbarHeight) + 'px'
+				};
+			},
+			publishBodyStyle(){
+				return {
+					paddingTop: (this.statusBarHeight + this.topbarHeight + this.topbarBottomGap + 6) + 'px'
+				};
+			}
 		},
 		mounted() {
 			_this=this;
 			_this.typeDataLists();
 		},
 		onLoad() {
+			this.initTopbarMetrics();
 			for(var j=0; j<this.checkbox.length; j++){
 				if(this.checkbox[j].checked){
 					this.labelList.push(this.checkbox[j])
@@ -181,6 +204,29 @@
 			
 		},
 		methods: {
+			goBack(){
+				uni.navigateBack({
+					delta: 1,
+					fail: () => {
+						uni.switchTab({
+							url: '/pages/index/index'
+						});
+					}
+				});
+			},
+			initTopbarMetrics(){
+				let statusBarHeight=Number(this.StatusBar || 0);
+				let systemInfo={};
+				try{
+					systemInfo=uni.getSystemInfoSync() || {};
+				}catch(error){
+					systemInfo={};
+				}
+				if(!statusBarHeight){
+					statusBarHeight=Number(systemInfo.statusBarHeight || 0);
+				}
+				this.statusBarHeight=statusBarHeight;
+			},
 			//分类数据
 			typeDataLists(){
 					_this.$api.typeData(
@@ -490,6 +536,54 @@
 </script>
 
 <style>
+	.publish-page-root{
+		min-height: 100vh;
+		background: #f6f7fb;
+	}
+	.publish-topbar{
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		z-index: 30;
+		display: flex;
+		align-items: center;
+		padding: 0 24rpx;
+		box-sizing: border-box;
+		background: #ffffff;
+		border-bottom: 1rpx solid rgba(226, 232, 240, 0.72);
+	}
+	.publish-topbar__back{
+		position: absolute;
+		left: 24rpx;
+		bottom: 0;
+		height: 50px;
+		display: inline-flex;
+		align-items: center;
+		gap: 8rpx;
+		font-size: 32rpx;
+		color: #111827;
+		z-index: 2;
+	}
+	.publish-topbar__main{
+		flex: 1;
+		min-width: 0;
+		height: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.publish-topbar__name{
+		font-size: 30rpx;
+		line-height: 1;
+		color: #111827;
+		font-weight: 400;
+		letter-spacing: .6rpx;
+	}
+	.publish-page-body{
+		background: #f6f7fb;
+		padding-bottom: 40rpx;
+	}
 	.cu-form-group .title {
 		min-width: calc(4em + 15px);
 	}

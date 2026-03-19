@@ -10,7 +10,7 @@
 				<view class="home-school-main">
 					<view class="home-school-name-row">
 						<text class="home-school-name">{{ schoolDisplayName }}</text>
-						<text class="cuIcon-search home-school-search" @tap.stop="openSearch"></text>
+						<text class="cuIcon-search home-school-search" :style="homeSearchStyle" @tap.stop="openSearch"></text>
 					</view>
 				</view>
 			</view>
@@ -45,14 +45,20 @@
 							<image class="feed-user-avatar" v-if="item.avatar!=''" :src="item.avatar" mode="aspectFill"></image>
 							<image class="feed-user-avatar" v-else src="../../static/images/avatar.png" mode="aspectFill"></image>
 							<view class="feed-user-main">
-								<text class="feed-user-name" style="font-size:18rpx;font-weight:700;color:#334155;line-height:1.1;">{{item.feed_nickname || item.nickname}}</text>
+								<view class="feed-user-meta">
+									<view class="feed-user-name">{{item.feed_nickname || item.nickname}}</view>
+									<view class="feed-user-tag" v-if="item.feed_identity_label">{{ item.feed_identity_label }}</view>
+								</view>
+								<view class="feed-user-time">{{ item.feed_time_text }}</view>
 							</view>
 						</view>
-						<text class="cuIcon-moreandroid feed-more"></text>
+						<view class="feed-card-tools">
+							<text class="cuIcon-moreandroid feed-more" @tap.stop="openFeedActions(item)"></text>
+						</view>
 					</view>
 					<view class="feed-card-body" :data-id="item.id" @tap="detailTab">
-						<view class="feed-title" v-if="item.title">{{ item.title }}</view>
-						<view class="feed-text" v-if="item.feed_text">{{ item.feed_text }}</view>
+						<view class="feed-title" v-if="item.feed_display_title">{{ item.feed_display_title }}</view>
+						<view class="feed-text" v-if="item.feed_display_text">{{ item.feed_display_text }}</view>
 						<view class="feed-media-grid" v-if="item.feed_media && item.feed_media.length > 0">
 							<view class="feed-media-item" v-for="(img, mediaIndex) in item.feed_media" :key="item.feed_key + '-img-' + mediaIndex" @tap.stop="previewFeedImages(item, mediaIndex)">
 								<view class="feed-video-mask" v-if="item.type=='video' && mediaIndex===0"><text class="cuIcon-playfill"></text></view>
@@ -61,15 +67,14 @@
 						</view>
 					</view>
 					<view class="feed-card-foot">
-						<text class="feed-card-meta" style="font-size:14rpx;color:#c0c8d4;line-height:1.1;">{{ item.feed_time_text }}</text>
 						<view class="feed-card-actions">
 							<view class="feed-card-action">
-								<text class="cuIcon-appreciatefill"></text>
-								<text>{{item.favorNum}}</text>
+								<text class="cuIcon-comment feed-card-action__icon"></text>
+								<text class="feed-card-action__count" v-if="item.commentNum > 0">{{item.commentNum}}</text>
 							</view>
 							<view class="feed-card-action">
-								<text class="cuIcon-messagefill"></text>
-								<text>{{item.commentNum}}</text>
+								<text class="cuIcon-appreciate feed-card-action__icon"></text>
+								<text class="feed-card-action__count" v-if="item.favorNum > 0">{{item.favorNum}}</text>
 							</view>
 						</view>
 					</view>
@@ -79,11 +84,50 @@
 	<view class="text-center text-gray padding" v-if="list.length==0">暂无更多数据...</view>
 	<view class="text-center text-gray padding-tb-sm" :class="showNoResult?'show':'hide'" v-if="list.length>0">我是有底线的...</view>
 
+	<view class="feed-action-mask" v-if="feedActionVisible" @tap="closeFeedActions">
+		<view class="feed-action-sheet" @tap.stop="">
+			<view class="feed-action-sheet__panel">
+				<view class="feed-action-sheet__grid">
+					<view class="feed-action-sheet__item" @tap="copyFeedContent">
+						<view class="feed-action-sheet__icon">
+							<text class="cuIcon-copy"></text>
+						</view>
+						<view class="feed-action-sheet__label">复制</view>
+					</view>
+					<view class="feed-action-sheet__item" @tap="reportFeedContent">
+						<view class="feed-action-sheet__icon">
+							<text class="cuIcon-warn"></text>
+						</view>
+						<view class="feed-action-sheet__label">举报</view>
+					</view>
+				</view>
+			</view>
+			<view class="feed-action-sheet__cancel" @tap="closeFeedActions">取消</view>
+		</view>
+	</view>
+
+	<view class="report-reason-mask" v-if="reportReasonVisible" @tap="closeReportReasonSheet">
+		<view class="report-reason-sheet" @tap.stop="">
+			<view class="report-reason-sheet__panel">
+				<view class="report-reason-sheet__title">选择举报原因</view>
+				<view class="report-reason-sheet__grid">
+					<view
+						class="report-reason-sheet__item"
+						v-for="(reason, reasonIndex) in reportReasonOptions"
+						:key="'report-reason-' + reasonIndex"
+						@tap="submitReportReason(reason)"
+					>{{ reason }}</view>
+				</view>
+			</view>
+			<view class="report-reason-sheet__cancel" @tap="closeReportReasonSheet">取消</view>
+		</view>
+	</view>
+
 	<view class="cu-modal" :class="groupQrcodeVisible ? 'show' : ''" @tap="hideGroupQrcode">
 		<view class="cu-dialog group-qrcode-dialog" @tap.stop="">
-			<view class="cu-bar bg-white justify-end">
-				<view class="content">{{ groupQrcode ? groupQrcode.title : '进群提醒' }}</view>
-				<view class="action" @tap="hideGroupQrcode"><text class="cuIcon-close text-gray"></text></view>
+			<view class="group-qrcode-header bg-white">
+				<view class="group-qrcode-title">{{ groupQrcode ? groupQrcode.title : '进群提醒' }}</view>
+				<view class="group-qrcode-close" @tap="hideGroupQrcode"><text class="cuIcon-close text-gray"></text></view>
 			</view>
 			<view class="padding-lr padding-bottom bg-white" v-if="groupQrcode">
 				<view class="text-gray text-sm margin-bottom-sm" v-if="groupQrcode.description">{{ groupQrcode.description }}</view>
@@ -136,6 +180,11 @@ export default {
         homeBanners:[],
         topbarCapsuleReserve:0,
         topbarNavStickyTop:88,
+        feedActionVisible:false,
+        currentFeedActionItem:null,
+        reportReasonVisible:false,
+        pendingReportDiscoverId:0,
+        reportReasonOptions:['垃圾广告', '色情低俗', '人身攻击', '违法违规', '其他'],
     };
   },
   onLoad(e) {
@@ -211,7 +260,15 @@ export default {
             };
         },
         schoolDisplayName(){
-            return this.schoolInfo.short_name || this.schoolInfo.name || this.cityName || '请选择学校';
+            const fullName = String(this.schoolInfo.name || '').trim();
+            const shortName = String(this.schoolInfo.short_name || '').trim();
+            if(fullName){
+                if(shortName && shortName !== fullName && fullName.length > 6){
+                    return shortName;
+                }
+                return fullName;
+            }
+            return shortName || this.cityName || '请选择学校';
         },
         schoolDisplayInitial(){
             const name = this.schoolDisplayName || '校';
@@ -219,15 +276,27 @@ export default {
         },
         homeTopbarRowStyle(){
             if(!this.topbarCapsuleReserve){
-                return {};
+                return {
+                    paddingRight: '200rpx'
+                };
             }
             return {
-                paddingRight: this.topbarCapsuleReserve + 'px'
+                paddingRight: (this.topbarCapsuleReserve + 8) + 'px'
             };
         },
         homeTopNavStickyStyle(){
             return {
                 top: this.topbarNavStickyTop + 'px'
+            };
+        },
+        homeSearchStyle(){
+            if(this.topbarCapsuleReserve){
+                return {
+                    marginRight: Math.max(10, this.topbarCapsuleReserve - 84) + 'px'
+                };
+            }
+            return {
+                marginRight: '92rpx'
             };
         },
         schoolLogoUrl(){
@@ -240,18 +309,12 @@ export default {
             const primary = this.schoolTheme.primary;
             const secondary = this.schoolTheme.secondary;
             const textColor = this.schoolTheme.textColor;
-            const backgroundImage = this.schoolHeaderBgImage
-                ? `linear-gradient(180deg, ${primary} 0%, ${secondary} 46%, #ffffff 100%), url(${this.schoolHeaderBgImage})`
-                : `linear-gradient(180deg, ${primary} 0%, ${secondary} 46%, #ffffff 100%)`;
             return {
                 '--school-header-primary': primary,
                 '--school-header-secondary': secondary,
                 '--school-header-text': textColor,
-                backgroundColor: primary,
-                backgroundImage: backgroundImage,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat'
+                backgroundColor: '#ffffff',
+                backgroundImage: 'none'
             };
         }
   },
@@ -294,7 +357,7 @@ export default {
                 if (typeof wx !== 'undefined' && wx.getMenuButtonBoundingClientRect && systemInfo && systemInfo.windowWidth) {
                     const rect = wx.getMenuButtonBoundingClientRect();
                     if (rect && rect.left) {
-                        reserve = Math.max(110, Math.ceil(systemInfo.windowWidth - rect.left + 12));
+                        reserve = Math.max(132, Math.ceil(systemInfo.windowWidth - rect.left + 28));
                     }
                 }
                 if (systemInfo && systemInfo.windowWidth) {
@@ -396,6 +459,7 @@ export default {
 			if(!this.groupQrcode || !this.groupQrcode.image){
 				return;
 			}
+			this.hideGroupQrcode();
 			uni.previewImage({
 				urls:[this.groupQrcode.image],
 				current:this.groupQrcode.image
@@ -547,13 +611,16 @@ export default {
 			this.current_page = currentPage;
 			let arr=res.data.map((item, index)=>{
 				const feedMedia = this.normalizeFeedMedia(item);
+				const feedCopy = this.normalizeFeedCopy(item);
 				return{
 					...item,
 					page:currentPage,
 					feed_key: item.id ? ('feed-' + item.id) : ('feed-' + currentPage + '-' + index),
 					feed_nickname: this.normalizeFeedNickname(item.nickname),
+					feed_identity_label: this.normalizeFeedIdentity(item),
 					feed_media: feedMedia,
-					feed_text: item.text || item.content || '',
+					feed_display_title: feedCopy.title,
+					feed_display_text: feedCopy.text,
 					feed_time_text: this.formatFeedTime(item.createtime),
 					favorNum: Number(item.favorNum || 0),
 					commentNum: Number(item.commentNum || 0)
@@ -598,6 +665,67 @@ export default {
 	  normalizeFeedNickname(nickname){
 	  	return String(nickname || '').replace(/(\.\.\.|…)+$/g, '').trim();
 	  },
+	  normalizeFeedIdentity(item){
+	  	const candidates = [
+	  		item && item.identity_text,
+	  		item && item.grade_name,
+	  		item && item.user_type_text,
+	  		item && item.school_name,
+	  		item && item.school_short_name,
+	  		item && item.role_name
+	  	];
+	  	for(let i = 0; i < candidates.length; i++){
+	  		const value = String(candidates[i] || '').trim();
+	  		if(value){
+	  			return value.length > 8 ? value.slice(0, 8) + '…' : value;
+	  		}
+	  	}
+	  	return '';
+	  },
+	  normalizeFeedCopy(item){
+	  	const rawTitle = String((item && item.title) || '').trim();
+	  	const rawContent = String((item && item.content) || '').trim();
+	  	const rawSummary = String((item && item.text) || '').trim();
+	  	const bodyText = rawContent || rawSummary;
+	  	const normalizedTitle = rawTitle.replace(/\s+/g, '');
+	  	const normalizedBody = bodyText.replace(/\s+/g, '');
+	  	if(!bodyText){
+	  		return {
+	  			title: '',
+	  			text: rawTitle
+	  		};
+	  	}
+	  	if(rawTitle && normalizedTitle && normalizedTitle !== normalizedBody){
+	  		return {
+	  			title: rawTitle,
+	  			text: bodyText
+	  		};
+	  	}
+	  	return {
+	  		title: '',
+	  		text: bodyText
+	  	};
+	  },
+	  buildFeedActionCopyText(item){
+	  	if(!item){
+	  		return '';
+	  	}
+	  	const feedCopy = this.normalizeFeedCopy(item);
+	  	const lines = [];
+	  	if(feedCopy.title){
+	  		lines.push(feedCopy.title);
+	  	}
+	  	if(feedCopy.text){
+	  		lines.push(feedCopy.text);
+	  	}
+	  	if(!lines.length && item.feed_display_title){
+	  		lines.push(String(item.feed_display_title).trim());
+	  	}
+	  	if(!lines.length && item.feed_display_text){
+	  		lines.push(String(item.feed_display_text).trim());
+	  	}
+	  	return lines.filter(Boolean).join('\n');
+	  },
 	  previewFeedImages(item, mediaIndex){
 	  	const urls = item && Array.isArray(item.feed_media) ? item.feed_media : this.normalizeFeedMedia(item);
 	  	if(!urls.length){
@@ -632,6 +760,76 @@ export default {
 	  	}
 	  	return Math.max(1, Math.floor(diff / (86400 * 365))) + '年前';
 	  },
+		openFeedActions(item){
+			this.currentFeedActionItem = item || null;
+			this.feedActionVisible = true;
+		},
+		closeFeedActions(){
+			this.feedActionVisible = false;
+			this.currentFeedActionItem = null;
+		},
+		openReportReasonSheet(discoverId){
+			this.pendingReportDiscoverId = Number(discoverId || 0);
+			if(!this.pendingReportDiscoverId){
+				this.$common.errorToShow('帖子信息异常');
+				return;
+			}
+			this.reportReasonVisible = true;
+		},
+		closeReportReasonSheet(){
+			this.reportReasonVisible = false;
+			this.pendingReportDiscoverId = 0;
+		},
+		copyFeedContent(){
+			const copyText = this.buildFeedActionCopyText(this.currentFeedActionItem);
+			if(!copyText){
+				this.$common.normalToShow('这条帖子暂无可复制内容');
+				this.closeFeedActions();
+				return;
+			}
+			uni.setClipboardData({
+				data: copyText,
+				success: () => {
+					this.$common.successToShow('内容已复制');
+				},
+				fail: () => {
+					this.$common.errorToShow('复制失败，请重试');
+				},
+				complete: () => {
+					this.closeFeedActions();
+				}
+			});
+		},
+		reportFeedContent(){
+			const item = this.currentFeedActionItem || {};
+			const discoverId = Number(item.id || 0);
+			this.closeFeedActions();
+			if(!discoverId){
+				this.$common.errorToShow('帖子信息异常');
+				return;
+			}
+			this.openReportReasonSheet(discoverId);
+		},
+		submitReportReason(reason){
+			const discoverId = Number(this.pendingReportDiscoverId || 0);
+			const finalReason = String(reason || '').trim();
+			if(!discoverId || !finalReason){
+				this.closeReportReasonSheet();
+				this.$common.errorToShow('举报信息异常');
+				return;
+			}
+			this.$api.reportData({
+				discover_id: discoverId,
+				reason: finalReason
+			}, data => {
+				this.closeReportReasonSheet();
+				if (data.code == 1) {
+					this.$common.successToShow(data.msg || '举报已提交');
+				}else{
+					this.$common.errorToShow(data.msg || '举报失败，请重试');
+				}
+			});
+		},
 		detailTab(e){
 			var id=e.currentTarget.dataset.id;
 			this.$common.navigateTo('detail?id='+id);
@@ -703,6 +901,34 @@ export default {
 .group-qrcode-dialog{
 	width: 620rpx;
 }
+.group-qrcode-header{
+	position: relative;
+	padding: 28rpx 84rpx 18rpx 32rpx;
+	border-radius: 24rpx 24rpx 0 0;
+}
+.group-qrcode-title{
+	font-size: 36rpx;
+	line-height: 1.35;
+	font-weight: 500;
+	color: #4b5563;
+	text-align: center;
+	word-break: break-word;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	overflow: hidden;
+}
+.group-qrcode-close{
+	position: absolute;
+	top: 24rpx;
+	right: 20rpx;
+	width: 56rpx;
+	height: 56rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 34rpx;
+}
 .group-qrcode-image{
 	width: 420rpx;
 	height: 420rpx;
@@ -729,7 +955,7 @@ export default {
 	left: 0;
 	right: 0;
 	bottom: 0;
-	padding: 20rpx 24rpx;
+	padding: 20rpx 24rpx 58rpx;
 	background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.55) 100%);
 }
 .home-banner-title{
@@ -789,31 +1015,34 @@ export default {
 	font-weight: 700;
 }
 .home-school-main{
+	flex: 1;
 	min-width: 0;
-	padding-left: 16rpx;
+	padding-left: 18rpx;
 }
 .home-school-name-row{
 	display: flex;
 	align-items: center;
+	width: 100%;
 	min-width: 0;
 }
 .home-school-name{
 	display: block;
-	flex: 0 1 auto;
+	flex: 1 1 auto;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	font-size: 40rpx;
-	font-weight: 600;
-	line-height: 1.2;
+	font-size: 32rpx;
+	font-weight: 500;
+	letter-spacing: 0.5rpx;
+	line-height: 1.16;
 	color: var(--school-header-text, #111827);
 }
 .home-school-search{
-	margin-left: 20rpx;
-	font-size: 28rpx;
+	margin-left: 18rpx;
+	font-size: 26rpx;
 	line-height: 1;
 	color: var(--school-header-text, #111827);
-	opacity: 0.55;
+	opacity: 0.45;
 	flex-shrink: 0;
 }
 .home-top-nav-sticky{
@@ -838,22 +1067,23 @@ export default {
 	justify-content: center;
 	height: 84rpx;
 	line-height: 84rpx;
-	margin-right: 54rpx;
+	margin-right: 46rpx;
 	padding: 0;
 	min-width: 0;
 	border-radius: 0;
 	background: transparent;
 	border: none;
 	color: #5b616b;
-	font-size: 34rpx;
+	font-size: 22rpx;
 	font-weight: 500;
+	letter-spacing: 1rpx;
 	box-sizing: border-box;
 }
 .home-top-nav .cu-item.cur{
 	background: transparent;
 	border: none;
 	color: #111827;
-	font-weight: 700;
+	font-weight: 600;
 	box-shadow: none;
 }
 .home-top-nav .cu-item.cur::after{
@@ -890,80 +1120,265 @@ export default {
   }
 }
 .home-feed-list{
-	padding: 12rpx 0 8rpx;
+	padding: 0;
 }
 .feed-card{
-	padding: 18rpx 24rpx 16rpx;
+	padding: 28rpx 26rpx 26rpx;
 	margin-bottom: 14rpx;
 	background: #ffffff;
 	border-radius: 0;
 	box-shadow: none;
-	border-top: 1rpx solid #eef2f7;
-	border-bottom: 1rpx solid #eef2f7;
+	border: none;
 }
 .feed-card-head{
 	display: flex;
-	align-items: center;
+	align-items: flex-start;
 	justify-content: space-between;
+}
+.feed-card-tools{
+	display: flex;
+	align-items: flex-start;
+	flex-shrink: 0;
+	margin-left: 16rpx;
 }
 .feed-user{
 	flex: 1;
 	min-width: 0;
 	display: flex;
-	align-items: center;
+	align-items: flex-start;
 }
 .feed-user-avatar{
-	width: 48rpx;
-	height: 48rpx;
-	border-radius: 12rpx;
+	width: 64rpx;
+	height: 64rpx;
+	border-radius: 50%;
 	flex-shrink: 0;
 	background: #f1f5f9;
 }
 .feed-user-main{
 	min-width: 0;
-	padding-left: 12rpx;
+	padding-left: 22rpx;
+	padding-top: 2rpx;
+}
+.feed-user-meta{
+	display: flex;
+	align-items: center;
+	gap: 10rpx;
+	min-width: 0;
 }
 .feed-user-name{
-	font-size: 18rpx !important;
-	font-weight: 700 !important;
-	color: #334155;
+	display: block;
+	width: 132%;
+	max-width: none;
+	font-size: 24rpx;
+	font-weight: 700;
+	color: #6a7e96;
 	line-height: 1.1;
+	letter-spacing: .6rpx;
+	-webkit-transform: scale(0.76);
+	transform: scale(0.76);
+	-webkit-transform-origin: left center;
+	transform-origin: left center;
+	margin-left: -10rpx;
+}
+.feed-user-tag{
+	flex-shrink: 0;
+	max-width: 120rpx;
+	padding: 1rpx 6rpx;
+	border-radius: 999rpx;
+	background: #eef5ff;
+	font-size: 14rpx;
+	line-height: 1.2;
+	color: #7ba7d9;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.feed-user-time{
+	display: block;
+	width: 132%;
+	margin-top: -4rpx;
+	font-size: 18rpx;
+	line-height: 1.1;
+	color: #b3bac6;
+	-webkit-transform: scale(0.76);
+	transform: scale(0.76);
+	-webkit-transform-origin: left center;
+	transform-origin: left center;
+	margin-left: -10rpx;
 }
 .feed-more{
-	padding-left: 12rpx;
+	padding-top: 8rpx;
+	padding-left: 0;
+	font-size: 30rpx;
+	line-height: 1;
+	color: #b6bcc7;
+}
+.feed-action-mask{
+	position: fixed;
+	left: 0;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	background: rgba(15, 23, 42, 0.4);
+	z-index: 1999;
+	display: flex;
+	align-items: flex-end;
+}
+.feed-action-sheet{
+	width: 100%;
+	padding: 0 12rpx calc(env(safe-area-inset-bottom) + 8rpx);
+	box-sizing: border-box;
+}
+.feed-action-sheet__panel{
+	background: #ffffff;
+	border-radius: 28rpx 28rpx 0 0;
+	padding: 24rpx 24rpx 18rpx;
+}
+.feed-action-sheet__grid{
+	display: flex;
+	align-items: flex-start;
+	gap: 18rpx;
+}
+.feed-action-sheet__item{
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	width: 128rpx;
+}
+.feed-action-sheet__icon{
+	width: 88rpx;
+	height: 88rpx;
+	border-radius: 22rpx;
+	background: #f8fafc;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 42rpx;
+	color: #111827;
+	box-shadow: inset 0 0 0 1rpx #eef2f7;
+}
+.feed-action-sheet__label{
+	margin-top: 12rpx;
+	font-size: 24rpx;
+	color: #5b6475;
+}
+.feed-action-sheet__cancel{
+	margin-top: 0;
+	background: #ffffff;
+	border-radius: 0 0 28rpx 28rpx;
+	text-align: center;
+	font-size: 30rpx;
+	font-weight: 600;
+	color: #7c8798;
+	line-height: 88rpx;
+	border-top: 1rpx solid #eef2f7;
+}
+.report-reason-mask{
+	position: fixed;
+	left: 0;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	background: rgba(15, 23, 42, 0.32);
+	z-index: 2000;
+	display: flex;
+	align-items: flex-end;
+}
+.report-reason-sheet{
+	width: 100%;
+	padding: 0 16rpx calc(env(safe-area-inset-bottom) + 12rpx);
+	box-sizing: border-box;
+}
+.report-reason-sheet__panel{
+	background: #ffffff;
+	border-radius: 28rpx;
+	padding: 26rpx 24rpx 22rpx;
+	box-shadow: 0 18rpx 48rpx rgba(15, 23, 42, 0.12);
+}
+.report-reason-sheet__title{
 	font-size: 28rpx;
-	color: #94a3b8;
+	font-weight: 600;
+	color: #1f2937;
+	text-align: center;
+}
+.report-reason-sheet__grid{
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 16rpx;
+	margin-top: 22rpx;
+}
+.report-reason-sheet__item{
+	height: 84rpx;
+	border-radius: 20rpx;
+	background: #f8fafc;
+	box-shadow: inset 0 0 0 1rpx #e8edf5;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 28rpx;
+	color: #334155;
+}
+.report-reason-sheet__cancel{
+	margin-top: 12rpx;
+	height: 84rpx;
+	border-radius: 24rpx;
+	background: #ffffff;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 30rpx;
+	font-weight: 600;
+	color: #7c8798;
 }
 .feed-card-body{
-	padding-left: 58rpx;
-	margin-top: 8rpx;
+	padding-left: 0;
+	margin-top: 4rpx;
 }
 .feed-title{
-	font-size: 29rpx;
-	font-weight: 400;
-	line-height: 1.6;
-	color: #334155;
+	display: block;
+	width: 125%;
+	font-size: 20rpx;
+	font-weight: 500;
+	line-height: 1.8;
+	letter-spacing: 1.2rpx;
+	color: #4b5563;
 	word-break: break-word;
+	-webkit-transform: scale(0.8);
+	transform: scale(0.8);
+	-webkit-transform-origin: left top;
+	transform-origin: left top;
+	margin-bottom: -12rpx;
 }
 .feed-text{
-	margin-top: 8rpx;
-	font-size: 29rpx;
+	display: block;
+	width: 125%;
+	margin-top: 0;
+	font-size: 20rpx;
 	font-weight: 400;
-	line-height: 1.6;
-	color: #334155;
+	font-family: "Heiti SC", "Microsoft YaHei", sans-serif;
+	line-height: 1.8;
+	letter-spacing: 1.2rpx;
+	color: #4b5563;
 	word-break: break-word;
+	white-space: pre-wrap;
+	-webkit-transform: scale(0.8);
+	transform: scale(0.8);
+	-webkit-transform-origin: left top;
+	transform-origin: left top;
+	margin-bottom: -6rpx;
 }
 .feed-media-grid{
 	display: flex;
 	flex-wrap: wrap;
-	gap: 8rpx;
-	margin-top: 8rpx;
+	gap: 10rpx;
+	margin-top: 0;
 }
 .feed-media-item{
 	position: relative;
-	width: 132rpx;
-	height: 132rpx;
-	border-radius: 14rpx;
+	width: 148rpx;
+	height: 148rpx;
+	border-radius: 16rpx;
 	overflow: hidden;
 	background: #e5e7eb;
 }
@@ -991,31 +1406,37 @@ export default {
 	font-size: 30rpx;
 }
 .feed-card-foot{
-	padding-left: 58rpx;
-	margin-top: 12rpx;
+	padding-left: 0;
+	margin-top: 24rpx;
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
-}
-.feed-card-meta{
-	font-size: 14rpx !important;
-	color: #c0c8d4;
-	line-height: 1.1;
+	justify-content: flex-end;
 }
 .feed-card-actions{
 	display: flex;
 	align-items: center;
+	gap: 22rpx;
 }
 .feed-card-action{
 	display: inline-flex;
 	align-items: center;
-	margin-left: 18rpx;
+	justify-content: flex-start;
+	min-width: 72rpx;
+	margin-left: 0;
 	font-size: 24rpx;
-	color: #475569;
+	letter-spacing: 0;
+	color: #5b6472;
 }
-.feed-card-action text:first-child{
+.feed-card-action__icon{
 	margin-right: 6rpx;
-	font-size: 26rpx;
+	font-size: 32rpx;
+	line-height: 1;
+}
+.feed-card-action__count{
+	min-width: 16rpx;
+	font-size: 20rpx;
+	line-height: 1;
+	text-align: left;
 }
 .uinfo{ font-size:20rpx;}
 </style>

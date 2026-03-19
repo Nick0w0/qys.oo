@@ -16,7 +16,7 @@
 							<view class="detail-post-time">{{detailDatas.createtime}}</view>
 						</view>
 					</view>
-					<button class="cu-btn detail-follow-btn" :class="isfollow ? 'is-active' : ''" @tap="doAttentionDataOp">
+					<button v-if="canFollowAuthor" class="cu-btn detail-follow-btn" :class="isfollow ? 'is-active' : 'is-idle'" @tap="doAttentionDataOp">
 						<text class="cuIcon-attentionfavorfill"></text>
 						<text>{{ isfollow ? '已关注' : '关注' }}</text>
 					</button>
@@ -30,7 +30,7 @@
 					<video :src="videoSrc" :show-play-btn="true" :controls="true" objectFit="cover"></video>
 				</view>
 
-				<view class="detail-post-media-grid" v-if="swiperList.length>0">
+				<view class="detail-post-media-grid" :class="swiperList.length === 1 ? 'is-single' : ''" v-if="swiperList.length>0">
 					<view class="detail-post-media-item" :class="swiperList.length === 1 ? 'is-single' : ''" v-for="(item,index) in swiperList" :key="index" @tap="lookImg(index,item.type)">
 						<image :src="item.url" mode="aspectFill"></image>
 					</view>
@@ -58,7 +58,7 @@
 				</view>
 			</view>
 
-			<view class="detail-comment-section">
+			<view class="detail-comment-section" v-if="commentEnabled">
 				<view class="detail-section-head">
 					<view class="detail-section-title">评论 {{detailDatas.commentNum || 0}}</view>
 					<view class="detail-section-note">最新评论</view>
@@ -117,8 +117,8 @@
 
 		<view class="detail-loading" v-else>加载中...</view>
 
-		<view class="detail-bottom-space" v-if="detailDatas.iscommentdata=='1'"></view>
-		<view class="detail-comment-bar" v-if="detailDatas.iscommentdata=='1'">
+		<view class="detail-bottom-space" v-if="commentEnabled"></view>
+		<view class="detail-comment-bar" v-if="commentEnabled">
 			<view class="detail-reply-tip" v-if="focusComment">
 				<view class="detail-reply-tip-text">
 					<text class="detail-reply-tip-label">回复</text>
@@ -176,6 +176,20 @@
 					.map(id => labelMap[id])
 					.filter(Boolean)
 					.join(' / ');
+			},
+			canFollowAuthor() {
+				if (typeof this.detailDatas.canFollowAuthor !== 'undefined') {
+					return Number(this.detailDatas.canFollowAuthor || 0) === 1;
+				}
+				const postUserId = Number(this.detailDatas.user_id || 0);
+				const currentUserId = Number(this.user_id || 0);
+				if (!postUserId || !currentUserId) {
+					return false;
+				}
+				return postUserId !== currentUserId;
+			},
+			commentEnabled() {
+				return Number(this.detailDatas.iscommentdata || 1) === 1;
 			}
 		},
 		data() {
@@ -222,8 +236,6 @@
 			this.id=e.id;//19//
 			this.loadTagOptions();
 			this.detailDataLists();
-			//评论列表
-			this.showCommentListsDataOp();
 			//this.attentionDataOp();
 		},
 		methods: {
@@ -251,6 +263,76 @@
 						current:index
 					})
 				}
+			},
+			getMediaTypeByUrl(url){
+				const cleanUrl = String(url || '').split('?')[0].toLowerCase();
+				if(!cleanUrl){
+					return '';
+				}
+				if(/\.(mp4|avi|mov|m4v|webm)$/i.test(cleanUrl)){
+					return 'video';
+				}
+				if(/\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(cleanUrl)){
+					return 'image';
+				}
+				return '';
+			},
+			normalizeMediaUrl(url){
+				const finalUrl = String(url || '').trim().replace(/^['"]|['"]$/g, '');
+				if(!finalUrl || finalUrl === '[]' || finalUrl === 'null' || finalUrl === 'undefined'){
+					return '';
+				}
+				return finalUrl;
+			},
+			normalizeMediaList(value){
+				if(Array.isArray(value)){
+					return value;
+				}
+				const raw = String(value || '').trim();
+				if(!raw || raw === '[]' || raw === 'null' || raw === 'undefined'){
+					return [];
+				}
+				if(raw[0] === '[' && raw[raw.length - 1] === ']'){
+					try{
+						const parsed = JSON.parse(raw);
+						return Array.isArray(parsed) ? parsed : [];
+					}catch(e){
+					}
+				}
+				return raw.split(',');
+			},
+			buildDetailMedia(res){
+				const medias = [];
+				const appendMedia = (url, type = '') => {
+					const finalUrl = this.normalizeMediaUrl(url);
+					if(!finalUrl){
+						return;
+					}
+					medias.push({
+						url: finalUrl,
+						type: type || this.getMediaTypeByUrl(finalUrl) || 'image'
+					});
+				};
+
+				if(Array.isArray(res.coverPicVideos) && res.coverPicVideos.length){
+					res.coverPicVideos.forEach(item => {
+						if(!item){
+							return;
+						}
+						appendMedia(item.url, item.type);
+					});
+				}
+
+				if(!medias.length){
+					const coverimages = this.normalizeMediaList(res.coverimages_ && res.coverimages_.length ? res.coverimages_ : res.coverimages);
+					coverimages.forEach(url => appendMedia(url));
+				}
+
+				if(!medias.length && res.coverimage){
+					appendMedia(res.coverimage);
+				}
+
+				return medias;
 			},
 			//作品评论列表
 			doCommentListsDataOp(type){
@@ -284,8 +366,8 @@
 						if (data.code == 1) {
 							this.loadFinish=true;
 							 this.detailDatas=	res;
-							 let swiperList=Array.isArray(res.coverPicVideos) ? res.coverPicVideos : [];
-							 swiperList.map((item,index)=>{
+							 let mediaList=this.buildDetailMedia(res);
+							 mediaList.map((item,index)=>{
 								 if(item.type=='video'){
 									 this.videoSrc=item.url
 								 }
@@ -308,6 +390,14 @@
 								 this.isfollow=true;
 							 }else{
 								this.isfollow=false; 
+							 }
+							 if(this.commentEnabled){
+								this.showCommentListsDataOp();
+							 }else{
+								this.commentLists=[];
+								this.focusComment=false;
+								this.isShowEmj=false;
+								this.inputValue='';
 							 }
 						 
 						}else{
@@ -395,6 +485,10 @@
 
 			//评论列表
 			showCommentListsDataOp(){
+					if(!this.commentEnabled){
+						this.commentLists=[];
+						return;
+					}
 					this.user = this.$common.userInfo();
 					//如果登录了，就要把当前的点赞状态给显示出来。
 					if(this.user){
@@ -481,7 +575,7 @@
 			},
 			//点击评论内容回复
 			replyBtn(id,parent_id,userName){
-				if(this.detailDatas.iscommentdata=='0'){
+				if(!this.commentEnabled){
 					this.$common.normalToShow('该条动态作者已关闭评论功能');
 					return false;
 				}
@@ -629,33 +723,44 @@
 }
 
 .detail-follow-btn{
-	min-width: 144rpx;
-	height: 64rpx;
-	padding: 0 24rpx !important;
+	min-width: 128rpx;
+	height: 56rpx;
+	padding: 0 20rpx !important;
 	border-radius: 999rpx;
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	color: var(--detail-accent) !important;
-	background: #ffffff !important;
-	border: 1rpx solid var(--detail-accent);
+	color: #5775d8 !important;
+	background: rgba(95, 126, 232, 0.08) !important;
+	border: none;
 	box-sizing: border-box;
+	box-shadow: inset 0 0 0 1rpx rgba(95, 126, 232, 0.16);
+}
+
+.detail-follow-btn::after{
+	border: none;
 }
 
 .detail-follow-btn text{
-	font-size: 24rpx;
+	font-size: 22rpx;
 	line-height: 1;
 	white-space: nowrap;
 }
 
 .detail-follow-btn text:first-child{
-	margin-right: 8rpx;
+	margin-right: 6rpx;
+	font-size: 20rpx;
+}
+
+.detail-follow-btn.is-idle{
+	color: #5f7ee8 !important;
+	background: rgba(95, 126, 232, 0.08) !important;
 }
 
 .detail-follow-btn.is-active{
-	color: #ffffff !important;
-	background: linear-gradient(135deg, var(--detail-accent) 0%, var(--detail-accent-soft) 100%) !important;
-	border-color: transparent;
+	color: #7b8798 !important;
+	background: #f3f5f9 !important;
+	box-shadow: inset 0 0 0 1rpx #e4e8ef;
 }
 
 .detail-post-title{
@@ -694,6 +799,11 @@
 	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
 	gap: 12rpx;
+	justify-content: flex-start;
+}
+
+.detail-post-media-grid.is-single{
+	grid-template-columns: 320rpx;
 }
 
 .detail-post-media-item{
@@ -704,8 +814,8 @@
 }
 
 .detail-post-media-item.is-single{
-	grid-column: 1 / -1;
-	height: 380rpx;
+	grid-column: auto;
+	height: 320rpx;
 }
 
 .detail-post-media-item image{

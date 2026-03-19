@@ -15,6 +15,13 @@
 // 定义应用目录
 define('APP_PATH', __DIR__ . '/../application/');
 
+if (empty($_SERVER['PATH_INFO']) && !empty($_SERVER['REQUEST_URI']) && !empty($_SERVER['SCRIPT_NAME'])) {
+    $requestUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    if (is_string($requestUri) && strpos($requestUri, $_SERVER['SCRIPT_NAME']) === 0) {
+        $_SERVER['PATH_INFO'] = substr($requestUri, strlen($_SERVER['SCRIPT_NAME']));
+    }
+}
+
 // 判断是否安装
 if (!is_file(APP_PATH . 'admin/command/Install/install.lock')) {
     header("location:./install.php");

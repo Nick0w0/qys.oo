@@ -460,8 +460,19 @@ class Auth extends \fast\Auth
             ->cache("__menu__")
             ->select())->toArray();
         $hiddenRuleNames = ['auth/group', 'auth/rule'];
+        $hiddenRulePrefixes = ['wechat'];
         foreach ($ruleList as $index => $rule) {
-            if (in_array(strtolower($rule['name']), $hiddenRuleNames, true)) {
+            $ruleName = strtolower($rule['name']);
+            $isHidden = in_array($ruleName, $hiddenRuleNames, true);
+            if (!$isHidden) {
+                foreach ($hiddenRulePrefixes as $prefix) {
+                    if ($ruleName === $prefix || strpos($ruleName, $prefix . '/') === 0) {
+                        $isHidden = true;
+                        break;
+                    }
+                }
+            }
+            if ($isHidden) {
                 unset($ruleList[$index]);
             }
         }

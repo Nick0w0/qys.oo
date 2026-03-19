@@ -80,6 +80,19 @@ class Common extends Base
         $detail = $this->detailData($id,$user_id);
         $this->success('请求成功', $detail);   
     }
+
+    /**
+     * 举报动态
+     * @param string $discover_id 动态ID
+     * @param string $reason 举报原因
+     */
+    public function report()
+    {
+        $discover_id = (int)$this->request->request('discover_id', 0);
+        $reason = trim((string)$this->request->request('reason', ''));
+        $this->reportDiscover($discover_id, $reason);
+    }
+
     /**
      * 发布 动态
      * @param string $title        标题

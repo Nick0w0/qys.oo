@@ -37,7 +37,53 @@
                         {field: 'createtime', title: __('Createtime'), operate: 'RANGE', addclass: 'datetimerange', autocomplete: false, formatter: Table.api.formatter.datetime},
                         {field: 'updatetime', title: __('Updatetime'), operate: 'RANGE', addclass: 'datetimerange', autocomplete: false, formatter: Table.api.formatter.datetime},
                         {field: 'weigh', title: __('Weigh'), operate: false},
-                        {field: 'operate', title: __('Operate'), table: table, events: Table.api.events.operate, formatter: Table.api.formatter.operate}
+                        {
+                            field: 'operate',
+                            title: __('Operate'),
+                            table: table,
+                            events: Table.api.events.operate,
+                            buttons: [
+                                {
+                                    name: 'top',
+                                    text: __('Top now'),
+                                    title: __('Set top on'),
+                                    icon: 'fa fa-arrow-up',
+                                    classname: 'btn btn-success btn-xs btn-click',
+                                    confirm: __('Confirm top post'),
+                                    visible: function (row) {
+                                        return String(row.is_top) !== '1';
+                                    },
+                                    click: function (options, row) {
+                                        Backend.api.ajax({
+                                            url: 'discover/discover/multi',
+                                            data: {ids: row.id, params: 'is_top=1'}
+                                        }, function () {
+                                            $('#' + options.tableId).bootstrapTable('refresh');
+                                        });
+                                    }
+                                },
+                                {
+                                    name: 'untop',
+                                    text: __('Untop now'),
+                                    title: __('Set top off'),
+                                    icon: 'fa fa-arrow-down',
+                                    classname: 'btn btn-warning btn-xs btn-click',
+                                    confirm: __('Confirm untop post'),
+                                    visible: function (row) {
+                                        return String(row.is_top) === '1';
+                                    },
+                                    click: function (options, row) {
+                                        Backend.api.ajax({
+                                            url: 'discover/discover/multi',
+                                            data: {ids: row.id, params: 'is_top=0'}
+                                        }, function () {
+                                            $('#' + options.tableId).bootstrapTable('refresh');
+                                        });
+                                    }
+                                }
+                            ],
+                            formatter: Table.api.formatter.operate
+                        }
                     ]
                 ]
             });
