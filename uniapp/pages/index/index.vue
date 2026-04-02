@@ -1,16 +1,16 @@
 <template>
   <view class="content" :style="themeVarsStyle">
-	  <view class="home-topbar" :style="schoolHeroStyle">
+	<view class="home-topbar" :style="schoolHeroStyle">
 		<view class="home-topbar-row" :style="homeTopbarRowStyle">
 			<view class="home-school-hero">
 				<view class="home-school-logo-shell">
 					<image v-if="schoolLogoUrl" class="home-school-logo" :src="schoolLogoUrl" mode="aspectFill"></image>
 					<view v-else class="home-school-logo-fallback">{{ schoolDisplayInitial }}</view>
 				</view>
-				<view class="home-school-main">
+				<view class="home-school-main" :style="homeSchoolMainStyle">
 					<view class="home-school-name-row">
 						<text class="home-school-name">{{ schoolDisplayName }}</text>
-						<text class="cuIcon-search home-school-search" :style="homeSearchStyle" @tap.stop="openSearch"></text>
+						<text class="cuIcon-search home-school-search" @tap.stop="openSearch"></text>
 					</view>
 				</view>
 			</view>
@@ -18,7 +18,7 @@
 	</view>
 	<view class="home-banner-wrap" v-if="homeBanners.length > 0">
 		<swiper class="home-banner-swiper" :indicator-dots="homeBanners.length > 1" indicator-color="rgba(255,255,255,0.5)" indicator-active-color="#ffffff" :autoplay="homeBanners.length > 1" :interval="4000" :duration="500" circular>
-			<swiper-item v-for="(item,index) in homeBanners" :key="'banner-'+index">
+			<swiper-item v-for="(item,index) in homeBanners" :key="item.banner_key">
 				<view class="home-banner-item" @tap="handleBannerTap(item)">
 					<image class="home-banner-image" :src="item.image" mode="aspectFill"></image>
 					<view class="home-banner-mask" v-if="item.title">
@@ -39,7 +39,7 @@
 		<!-- 单列帖子流 -->
 		<view class="contentWarp">
 			<view class="home-feed-list" v-if="list.length > 0">
-				<view class="feed-card" v-for="(item, index) in list" :key="item.feed_key || index">
+				<view class="feed-card" v-for="(item, index) in list" :key="item.feed_key">
 					<view class="feed-card-head">
 						<view class="feed-user" :data-id="item.id" @tap="detailTab">
 							<image class="feed-user-avatar" v-if="item.avatar!=''" :src="item.avatar" mode="aspectFill"></image>
@@ -60,7 +60,7 @@
 						<view class="feed-title" v-if="item.feed_display_title">{{ item.feed_display_title }}</view>
 						<view class="feed-text" v-if="item.feed_display_text">{{ item.feed_display_text }}</view>
 						<view class="feed-media-grid" v-if="item.feed_media && item.feed_media.length > 0">
-							<view class="feed-media-item" v-for="(img, mediaIndex) in item.feed_media" :key="item.feed_key + '-img-' + mediaIndex" @tap.stop="previewFeedImages(item, mediaIndex)">
+							<view class="feed-media-item" v-for="(img, mediaIndex) in item.feed_media" :key="mediaIndex" @tap.stop="previewFeedImages(item, mediaIndex)">
 								<view class="feed-video-mask" v-if="item.type=='video' && mediaIndex===0"><text class="cuIcon-playfill"></text></view>
 								<image class="feed-media-image" :src="img" mode="aspectFill"></image>
 							</view>
@@ -114,9 +114,9 @@
 					<view
 						class="report-reason-sheet__item"
 						v-for="(reason, reasonIndex) in reportReasonOptions"
-						:key="'report-reason-' + reasonIndex"
+						:key="reason.key"
 						@tap="submitReportReason(reason)"
-					>{{ reason }}</view>
+					>{{ reason.label }}</view>
 				</view>
 			</view>
 			<view class="report-reason-sheet__cancel" @tap="closeReportReasonSheet">取消</view>
@@ -184,7 +184,13 @@ export default {
         currentFeedActionItem:null,
         reportReasonVisible:false,
         pendingReportDiscoverId:0,
-        reportReasonOptions:['垃圾广告', '色情低俗', '人身攻击', '违法违规', '其他'],
+        reportReasonOptions:[
+            { key:'reason-1', label:'垃圾广告' },
+            { key:'reason-2', label:'色情低俗' },
+            { key:'reason-3', label:'人身攻击' },
+            { key:'reason-4', label:'违法违规' },
+            { key:'reason-5', label:'其他' }
+        ],
     };
   },
   onLoad(e) {
@@ -277,11 +283,11 @@ export default {
         homeTopbarRowStyle(){
             if(!this.topbarCapsuleReserve){
                 return {
-                    paddingRight: '200rpx'
+                    paddingRight: '248rpx'
                 };
             }
             return {
-                paddingRight: (this.topbarCapsuleReserve + 8) + 'px'
+                paddingRight: (this.topbarCapsuleReserve + 24) + 'px'
             };
         },
         homeTopNavStickyStyle(){
@@ -289,14 +295,14 @@ export default {
                 top: this.topbarNavStickyTop + 'px'
             };
         },
-        homeSearchStyle(){
+        homeSchoolMainStyle(){
             if(this.topbarCapsuleReserve){
                 return {
-                    marginRight: Math.max(10, this.topbarCapsuleReserve - 84) + 'px'
+                    paddingRight: (this.topbarCapsuleReserve + 40) + 'px'
                 };
             }
             return {
-                marginRight: '92rpx'
+                paddingRight: '220rpx'
             };
         },
         schoolLogoUrl(){
@@ -312,9 +318,7 @@ export default {
             return {
                 '--school-header-primary': primary,
                 '--school-header-secondary': secondary,
-                '--school-header-text': textColor,
-                backgroundColor: '#ffffff',
-                backgroundImage: 'none'
+                '--school-header-text': textColor
             };
         }
   },
@@ -353,11 +357,16 @@ export default {
             let reserve = 0;
             let stickyTop = 108;
             try {
-                const systemInfo = uni.getSystemInfoSync ? uni.getSystemInfoSync() : null;
+                let systemInfo = null;
+                if (typeof wx !== 'undefined' && typeof wx.getWindowInfo === 'function') {
+                    systemInfo = wx.getWindowInfo() || null;
+                } else {
+                    systemInfo = uni.getSystemInfoSync ? uni.getSystemInfoSync() : null;
+                }
                 if (typeof wx !== 'undefined' && wx.getMenuButtonBoundingClientRect && systemInfo && systemInfo.windowWidth) {
                     const rect = wx.getMenuButtonBoundingClientRect();
                     if (rect && rect.left) {
-                        reserve = Math.max(132, Math.ceil(systemInfo.windowWidth - rect.left + 28));
+                        reserve = Math.max(176, Math.ceil(systemInfo.windowWidth - rect.left + 52));
                     }
                 }
                 if (systemInfo && systemInfo.windowWidth) {
@@ -471,7 +480,10 @@ export default {
 		loadHomeBanners(schoolId){
 			this.$api.homeBannerData({school_id: schoolId || 0, limit: 5}, res => {
 				if(res.code === 1 && res.data){
-					this.homeBanners = Array.isArray(res.data.list) ? res.data.list : [];
+					this.homeBanners = Array.isArray(res.data.list) ? res.data.list.map((item, index) => ({
+						...item,
+						banner_key:item.id ? ('banner-' + item.id) : ('banner-' + index)
+					})) : [];
 				}
 			});
 		},
@@ -812,7 +824,7 @@ export default {
 		},
 		submitReportReason(reason){
 			const discoverId = Number(this.pendingReportDiscoverId || 0);
-			const finalReason = String(reason || '').trim();
+			const finalReason = String(reason && reason.label ? reason.label : reason || '').trim();
 			if(!discoverId || !finalReason){
 				this.closeReportReasonSheet();
 				this.$common.errorToShow('举报信息异常');
@@ -966,10 +978,22 @@ export default {
 .home-topbar{
 	position: sticky;
 	top: 0;
-	z-index: 40;
-	padding: calc(var(--status-bar-height) + 10rpx) 0 0;
+	z-index: 52;
+	padding: calc(var(--status-bar-height) + 14rpx) 0 0;
 	box-sizing: border-box;
-	overflow: hidden;
+	overflow: visible;
+	background: #ffffff;
+	background-image: none;
+}
+.home-topbar::after{
+	content: '';
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: -2rpx;
+	height: 12rpx;
+	background: #ffffff;
+	pointer-events: none;
 }
 .home-topbar-row{
 	display: flex;
@@ -977,6 +1001,7 @@ export default {
 	min-height: 84rpx;
 	padding: 0 24rpx 6rpx;
 	box-sizing: border-box;
+	background: #ffffff;
 }
 .home-school-hero{
 	flex: 1;
@@ -1018,27 +1043,34 @@ export default {
 	flex: 1;
 	min-width: 0;
 	padding-left: 18rpx;
+	padding-top: 10rpx;
 }
 .home-school-name-row{
-	display: flex;
+	display: inline-flex;
 	align-items: center;
-	width: 100%;
+	width: auto;
+	max-width: 100%;
 	min-width: 0;
+	box-sizing: border-box;
 }
 .home-school-name{
 	display: block;
-	flex: 1 1 auto;
+	flex: 0 1 auto;
+	max-width: 100%;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	font-size: 32rpx;
+	font-size: 28rpx;
 	font-weight: 500;
 	letter-spacing: 0.5rpx;
 	line-height: 1.16;
 	color: var(--school-header-text, #111827);
+	transform: translateY(0rpx);
 }
 .home-school-search{
-	margin-left: 18rpx;
+	position: static;
+	transform: none;
+	margin-left: 16rpx;
 	font-size: 26rpx;
 	line-height: 1;
 	color: var(--school-header-text, #111827);
@@ -1047,9 +1079,11 @@ export default {
 }
 .home-top-nav-sticky{
 	position: sticky;
-	z-index: 39;
+	z-index: 51;
 	padding: 0;
+	margin-top: -2rpx;
 	background: #ffffff;
+	border-top: 1rpx solid rgba(255,255,255,0.96);
 	box-shadow: 0 8rpx 18rpx rgba(15, 23, 42, 0.04);
 }
 .home-top-nav{
@@ -1067,7 +1101,7 @@ export default {
 	justify-content: center;
 	height: 84rpx;
 	line-height: 84rpx;
-	margin-right: 46rpx;
+	margin-right: 32rpx;
 	padding: 0;
 	min-width: 0;
 	border-radius: 0;
@@ -1097,7 +1131,7 @@ export default {
 	background: #111827;
 }
 .home-banner-wrap{
-	padding: 16rpx 24rpx 12rpx;
+	padding: 16rpx 24rpx 10rpx;
 	background: #ffffff;
 }
 
@@ -1148,15 +1182,15 @@ export default {
 	align-items: flex-start;
 }
 .feed-user-avatar{
-	width: 64rpx;
-	height: 64rpx;
+	width: 54rpx;
+	height: 54rpx;
 	border-radius: 50%;
 	flex-shrink: 0;
 	background: #f1f5f9;
 }
 .feed-user-main{
 	min-width: 0;
-	padding-left: 22rpx;
+	padding-left: 16rpx;
 	padding-top: 2rpx;
 }
 .feed-user-meta{
@@ -1167,18 +1201,18 @@ export default {
 }
 .feed-user-name{
 	display: block;
-	width: 132%;
+	width: 118%;
 	max-width: none;
-	font-size: 24rpx;
+	font-size: 26rpx;
 	font-weight: 700;
 	color: #6a7e96;
 	line-height: 1.1;
 	letter-spacing: .6rpx;
-	-webkit-transform: scale(0.76);
-	transform: scale(0.76);
+	-webkit-transform: scale(0.88);
+	transform: scale(0.88);
 	-webkit-transform-origin: left center;
 	transform-origin: left center;
-	margin-left: -10rpx;
+	margin-left: -4rpx;
 }
 .feed-user-tag{
 	flex-shrink: 0;
@@ -1195,16 +1229,16 @@ export default {
 }
 .feed-user-time{
 	display: block;
-	width: 132%;
+	width: 118%;
 	margin-top: -4rpx;
-	font-size: 18rpx;
+	font-size: 20rpx;
 	line-height: 1.1;
 	color: #b3bac6;
-	-webkit-transform: scale(0.76);
-	transform: scale(0.76);
+	-webkit-transform: scale(0.88);
+	transform: scale(0.88);
 	-webkit-transform-origin: left center;
 	transform-origin: left center;
-	margin-left: -10rpx;
+	margin-left: -4rpx;
 }
 .feed-more{
 	padding-top: 8rpx;
@@ -1337,36 +1371,36 @@ export default {
 }
 .feed-title{
 	display: block;
-	width: 125%;
-	font-size: 20rpx;
+	width: 112%;
+	font-size: 25rpx;
 	font-weight: 500;
-	line-height: 1.8;
-	letter-spacing: 1.2rpx;
+	line-height: 1.65;
+	letter-spacing: .8rpx;
 	color: #4b5563;
 	word-break: break-word;
-	-webkit-transform: scale(0.8);
-	transform: scale(0.8);
-	-webkit-transform-origin: left top;
-	transform-origin: left top;
-	margin-bottom: -12rpx;
-}
-.feed-text{
-	display: block;
-	width: 125%;
-	margin-top: 0;
-	font-size: 20rpx;
-	font-weight: 400;
-	font-family: "Heiti SC", "Microsoft YaHei", sans-serif;
-	line-height: 1.8;
-	letter-spacing: 1.2rpx;
-	color: #4b5563;
-	word-break: break-word;
-	white-space: pre-wrap;
-	-webkit-transform: scale(0.8);
-	transform: scale(0.8);
+	-webkit-transform: scale(0.9);
+	transform: scale(0.9);
 	-webkit-transform-origin: left top;
 	transform-origin: left top;
 	margin-bottom: -6rpx;
+}
+.feed-text{
+	display: block;
+	width: 112%;
+	margin-top: 0;
+	font-size: 29rpx;
+	font-weight: 400;
+	font-family: "Heiti SC", "Microsoft YaHei", sans-serif;
+	line-height: 1.65;
+	letter-spacing: .8rpx;
+	color: #4b5563;
+	word-break: break-word;
+	white-space: pre-wrap;
+	-webkit-transform: scale(0.9);
+	transform: scale(0.9);
+	-webkit-transform-origin: left top;
+	transform-origin: left top;
+	margin-bottom: -2rpx;
 }
 .feed-media-grid{
 	display: flex;
@@ -1423,7 +1457,7 @@ export default {
 	justify-content: flex-start;
 	min-width: 72rpx;
 	margin-left: 0;
-	font-size: 24rpx;
+	font-size: 26rpx;
 	letter-spacing: 0;
 	color: #5b6472;
 }
@@ -1434,7 +1468,7 @@ export default {
 }
 .feed-card-action__count{
 	min-width: 16rpx;
-	font-size: 20rpx;
+	font-size: 22rpx;
 	line-height: 1;
 	text-align: left;
 }

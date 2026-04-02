@@ -765,7 +765,7 @@
 
 .detail-post-title{
 	margin-top: 26rpx;
-	font-size: 34rpx;
+	font-size: 30rpx;
 	font-weight: 600;
 	line-height: 1.45;
 	color: #0f172a;
@@ -774,7 +774,7 @@
 
 .detail-post-text{
 	margin-top: 20rpx;
-	font-size: 30rpx;
+	font-size: 27rpx;
 	line-height: 1.7;
 	color: #1e293b;
 	word-break: break-word;

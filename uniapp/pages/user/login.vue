@@ -1,12 +1,7 @@
 <template>
 	<view class="content" :style="themeVarsStyle">
-		<view class="login-topbar">
-			<view class="login-topbar__back" @tap="goBack">
-				<text class="cuIcon-back"></text>
-			</view>
-			<view class="login-topbar__title">登录</view>
-			<view class="login-topbar__placeholder"></view>
-		</view>
+		<image class="login-cover-image" src="../../static/images/login-cover.png" mode="aspectFill"></image>
+		<view class="login-cover-mask"></view>
 
 		<block v-if="ismobile">
 			<view class="login-bg login-bg--mobile">
@@ -59,7 +54,10 @@
 							微信登录
 						</view>
 					</button>
-					<view class="login-link" @click="changMobileLogin()">手机登录</view>
+					<view class="login-link-row">
+						<view class="login-link" @click="changMobileLogin()">手机登录</view>
+						<view class="login-link" @tap="register">注册账号</view>
+					</view>
 				</view>
 			</view>
 			<!--  #endif -->
@@ -258,67 +256,41 @@
 	.content {
 		min-height: 100vh;
 		position: relative;
-		background-image:
-			linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,248,235,0.24) 48%, rgba(120,203,201,0.22) 100%),
-			url('../../static/images/login-cover.png');
-		background-size: cover;
-		background-position: center top;
-		background-repeat: no-repeat;
+		overflow: hidden;
 	}
 
-	.login-topbar {
+	.login-cover-image,
+	.login-cover-mask {
 		position: absolute;
-		top: 0;
 		left: 0;
+		top: 0;
 		right: 0;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: calc(env(safe-area-inset-top) + 16rpx) 24rpx 0;
-		box-sizing: border-box;
-		z-index: 2;
+		bottom: 0;
 	}
 
-	.login-topbar__back,
-	.login-topbar__placeholder {
-		width: 72rpx;
-		height: 72rpx;
-		flex-shrink: 0;
+	.login-cover-image {
+		width: 100%;
+		height: 100%;
 	}
 
-	.login-topbar__back {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		border-radius: 50%;
-		background: rgba(255,255,255,0.18);
-		backdrop-filter: blur(10rpx);
-		-webkit-backdrop-filter: blur(10rpx);
-		color: #ffffff;
-		font-size: 34rpx;
-	}
-
-	.login-topbar__title {
-		font-size: 38rpx;
-		line-height: 1;
-		font-weight: 500;
-		letter-spacing: 2rpx;
-		color: #ffffff;
-		text-shadow: 0 4rpx 12rpx rgba(68, 94, 96, 0.2);
+	.login-cover-mask {
+		background: linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,248,235,0.18) 48%, rgba(120,203,201,0.16) 100%);
 	}
 
 	.login-bg,
 	.logView {
 		min-height: 100vh;
-		padding: calc(env(safe-area-inset-top) + 164rpx) 32rpx 88rpx;
+		padding: calc(env(safe-area-inset-top) + 104rpx) 32rpx 88rpx;
 		box-sizing: border-box;
 		display: flex;
 		justify-content: center;
 		align-items: center;
+		position: relative;
+		z-index: 2;
 	}
 
 	.login-bg--mobile {
-		padding-top: calc(env(safe-area-inset-top) + 176rpx);
+		padding-top: calc(env(safe-area-inset-top) + 116rpx);
 	}
 
 	.login-card {
@@ -397,6 +369,13 @@
 		font-size: 24rpx;
 		letter-spacing: 1rpx;
 		color: #5c6f73;
+	}
+
+	.login-link-row {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		column-gap: 36rpx;
 	}
 
 	.logbt {

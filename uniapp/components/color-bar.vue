@@ -185,18 +185,18 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 84rpx;
-		margin-top: 8rpx;
-		height: 16rpx;
+		width: 92rpx;
+		margin-top: 10rpx;
+		height: 20rpx;
 		text-align: center;
 		white-space: nowrap;
 	}
 	.app-tabbar .app-tabbar-item .app-tabbar-label-text{
 		display: inline-block;
-		font-size: 12rpx;
-		line-height: 16rpx;
-		letter-spacing: 1rpx;
-		transform: scale(0.82);
+		font-size: 16rpx;
+		line-height: 20rpx;
+		letter-spacing: .8rpx;
+		transform: scale(0.9);
 		transform-origin: center center;
 	}
 	.app-tabbar .add-action .app-tabbar-label{

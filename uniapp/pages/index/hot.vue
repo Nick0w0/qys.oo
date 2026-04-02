@@ -1,12 +1,12 @@
 <template>
 	<view class="follow-feed-page" :style="themeVarsStyle">
-		<view class="follow-topbar" :style="followTopbarStyle">
-			<view class="follow-topbar__main">
-				<view class="follow-topbar__name">{{ followPageTitle }}</view>
-			</view>
-		</view>
+		<cu-custom class="follow-cu-topbar" bgColor="bg-white" :isBack="false">
+			<block slot="content">
+				<view class="follow-cu-topbar__title">{{ followPageTitle }}</view>
+			</block>
+		</cu-custom>
 
-		<view class="follow-feed-body" :style="followBodyStyle">
+		<view class="follow-feed-body">
 			<block v-if="attentionDataLists.length > 0">
 				<view class="follow-card" v-for="(item,index) in attentionDataLists" :key="index">
 					<view class="follow-card__header">
@@ -27,7 +27,7 @@
 					<view
 						v-if="item.coverimages && item.coverimages.length"
 						class="follow-card__gallery"
-						:class="getCoverLayoutClass(item.coverimages)"
+						:class="item.coverLayoutClass"
 					>
 						<view
 							class="follow-card__image"
@@ -91,8 +91,8 @@
 				user:[],
 				messageCount:0,
 				statusBarHeight:0,
-				topbarHeight:50,
-				topbarBottomGap:0
+				topbarHeight:72,
+				topbarBottomGap:10
 				
 			};
 		},
@@ -155,7 +155,11 @@
 				let statusBarHeight=Number(this.StatusBar || 0);
 				let systemInfo={};
 				try{
-					systemInfo=uni.getSystemInfoSync() || {};
+					if(typeof wx !== 'undefined' && typeof wx.getWindowInfo === 'function'){
+						systemInfo=wx.getWindowInfo() || {};
+					}else{
+						systemInfo=uni.getSystemInfoSync() || {};
+					}
 				}catch(error){
 					systemInfo={};
 				}
@@ -204,7 +208,8 @@
 									}
 								})
 								return{
-									...item
+									...item,
+									coverLayoutClass:this.getCoverLayoutClass(item.coverimages)
 								}
 							})
 							console.log(_this.attentionDataLists);
@@ -388,40 +393,29 @@
 	min-height: 100vh;
 	background: #f4f6fb;
 }
-
-.follow-topbar{
-	position: fixed;
-	top: 0;
-	left: 0;
-	right: 0;
-	z-index: 30;
-	display:flex;
-	align-items:center;
-	padding: 0 24rpx;
-	box-sizing: border-box;
-	background:#ffffff;
+.follow-cu-topbar .cu-bar{
+	box-shadow: none;
 	border-bottom: 1rpx solid rgba(226, 232, 240, 0.72);
 }
-
-.follow-topbar__main{
-	flex:1;
-	min-width:0;
-	height: 100%;
-	display: flex;
-	align-items: center;
+.follow-cu-topbar .cu-bar .content{
+	left: 24rpx;
+	right: 220upx;
+	width: auto;
+	text-align: left;
 }
-
-.follow-topbar__name{
+.follow-cu-topbar__title{
 	font-size: 30rpx;
 	line-height: 1;
 	color:#111827;
 	font-weight: 400;
 	letter-spacing: .6rpx;
-	padding-left: 14rpx;
+	text-align: left;
+	transform: translateY(12rpx);
+	padding-left: 15rpx;
 }
 
 .follow-feed-body{
-	padding: 0 24rpx 180rpx;
+	padding: 12rpx 24rpx 180rpx;
 }
 
 .follow-card{
@@ -453,7 +447,7 @@
 .follow-card__name-row{
 	display: flex;
 	flex-direction: column;
-	gap: 8rpx;
+	gap: 10rpx;
 }
 
 .follow-card__name{

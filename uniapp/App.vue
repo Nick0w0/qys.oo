@@ -8,30 +8,44 @@
 		},
 		onLaunch: function() {
 			console.log('App Launch')
-			uni.getSystemInfo({
-				success: function(e) {
-					// #ifndef MP
-					Vue.prototype.StatusBar = e.statusBarHeight;
-					if (e.platform == 'android') {
-						Vue.prototype.CustomBar = e.statusBarHeight + 50;
-					} else {
-						Vue.prototype.CustomBar = e.statusBarHeight + 45;
-					};
-					// #endif
-		
-					// #ifdef MP-WEIXIN
-					Vue.prototype.StatusBar = e.statusBarHeight;
-					let custom = wx.getMenuButtonBoundingClientRect();
-					Vue.prototype.Custom = custom;
-					Vue.prototype.CustomBar = custom.bottom + custom.top - e.statusBarHeight;
-					// #endif		
-		
-					// #ifdef MP-ALIPAY
-					Vue.prototype.StatusBar = e.statusBarHeight;
-					Vue.prototype.CustomBar = e.statusBarHeight + e.titleBarHeight;
-					// #endif
-				}
-			})
+			// #ifndef MP
+			let systemInfo = {}
+			try {
+				systemInfo = uni.getSystemInfoSync ? (uni.getSystemInfoSync() || {}) : {}
+			} catch (error) {
+				systemInfo = {}
+			}
+			Vue.prototype.StatusBar = systemInfo.statusBarHeight || 0;
+			if (systemInfo.platform == 'android') {
+				Vue.prototype.CustomBar = (systemInfo.statusBarHeight || 0) + 50;
+			} else {
+				Vue.prototype.CustomBar = (systemInfo.statusBarHeight || 0) + 45;
+			}
+			// #endif
+
+			// #ifdef MP-WEIXIN
+			let windowInfo = {};
+			try {
+				windowInfo = typeof wx.getWindowInfo === 'function' ? (wx.getWindowInfo() || {}) : {};
+			} catch (error) {
+				windowInfo = {};
+			}
+			const statusBarHeight = windowInfo.statusBarHeight || 0;
+			Vue.prototype.StatusBar = statusBarHeight;
+			let custom = null;
+			try {
+				custom = typeof wx.getMenuButtonBoundingClientRect === 'function' ? wx.getMenuButtonBoundingClientRect() : null;
+			} catch (error) {
+				custom = null;
+			}
+			Vue.prototype.Custom = custom;
+			Vue.prototype.CustomBar = custom && custom.bottom ? (custom.bottom + custom.top - statusBarHeight) : (statusBarHeight + 45);
+			// #endif
+
+			// #ifdef MP-ALIPAY
+			Vue.prototype.StatusBar = systemInfo.statusBarHeight || 0;
+			Vue.prototype.CustomBar = (systemInfo.statusBarHeight || 0) + (systemInfo.titleBarHeight || 0);
+			// #endif
 		},
 		onShow: function() {
 			console.log('App 开启')

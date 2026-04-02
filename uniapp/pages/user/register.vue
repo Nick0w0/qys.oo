@@ -90,6 +90,7 @@
 </template>
 
 <script>
+	import { hasBoundSchool } from '../../config/wechat-auth.js';
 	var _this;
 
 	export default {
@@ -101,9 +102,10 @@
 				password: "",
 				password2: '',
 				class_id: '',
-				ismobile: false,
+				ismobile: true,
 				group_id: 1,
 				code: '',
+				wxCode: '',
 				countDown: 60,
 				sendSms: true,
 				timer: null
@@ -117,10 +119,37 @@
 		},
 		onShow() {
 			// #ifdef MP-WEIXIN
-			this.wxLogin();
+			if (!this.ismobile) {
+				this.wxLogin();
+			}
 			// #endif
 		},
 		methods: {
+			redirectAfterLogin(url) {
+				uni.reLaunch({
+					url: url
+				});
+			},
+			getPostLoginUrl(userInfo) {
+				return hasBoundSchool(userInfo) ? '/pages/index/index' : '/pages/plugin/index';
+			},
+			handleLoginSuccess(userInfo, auth, message) {
+				if (!userInfo) {
+					return;
+				}
+				try {
+					this.$db.set('upload', 1);
+					this.$db.set('login', 1);
+					this.$db.set('token', userInfo.token || '');
+					this.$db.set('user', userInfo);
+					this.$db.set('auth', auth || {});
+					this.refreshAppTheme(userInfo);
+				} catch (e) {}
+				const targetUrl = this.getPostLoginUrl(userInfo);
+				this.$common.successToShow(message || '操作成功', () => {
+					this.redirectAfterLogin(targetUrl);
+				});
+			},
 			goBack() {
 				const pages = getCurrentPages();
 				if (pages.length > 1) {
@@ -195,7 +224,7 @@
 			wxLogin() {
 				wx.login({
 					success: (res) => {
-						this.code = res.code;
+						this.wxCode = res.code;
 					},
 					fail: function(error) {
 						console.log('login failed ' + error);
@@ -204,6 +233,7 @@
 			},
 			wechatLogin() {
 				_this.ismobile = false;
+				_this.wxLogin();
 			},
 			changMobileLogin() {
 				_this.ismobile = true;
@@ -255,19 +285,7 @@
 						if (data.code == 1) {
 							_this.loading = false;
 							console.log(data);
-							_this.$common.successToShow(data.msg, function() {
-								uni.navigateTo({
-									url: '../index/index'
-								});
-							});
-							try {
-								_this.$db.set('upload', 1)
-								_this.$db.set('login', 1)
-								_this.$db.set('token', data.data.user.token)
-								_this.$db.set('user', data.data.user)
-								_this.$db.set('auth', data.data.auth)
-								_this.refreshAppTheme(data.data.user)
-							} catch (e) {}
+							_this.handleLoginSuccess(data.data.user, data.data.auth, data.msg);
 						} else {
 							_this.loading = false;
 							uni.showToast({
@@ -289,7 +307,7 @@
 						console.log(res)
 						_this.$api.third(
 							{
-								code: _this.code,
+								code: _this.wxCode,
 								platform: platform,
 								encrypted_data: res.encryptedData,
 								iv: res.iv,
@@ -300,19 +318,7 @@
 								console.log(data);
 								var res = data.data;
 								if (data.code == 1) {
-									this.$common.successToShow('登录成功!');
-									try {
-										this.$db.set('upload', 1)
-										this.$db.set('login', 1)
-										this.$db.set('auth', res.auth)
-										this.$db.set('user', res.userinfo)
-										this.refreshAppTheme(res.userinfo)
-									} catch (e) {
-										console.log("e: ", e);
-									}
-									uni.navigateTo({
-										url: '../index/index'
-									});
+									this.handleLoginSuccess(res.userinfo, res.auth, '登录成功!');
 								} else {
 									_this.wxLogin();
 								}

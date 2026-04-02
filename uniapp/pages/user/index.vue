@@ -1,11 +1,11 @@
 ﻿<template>
 	<view class="user-page-root" :style="themeVarsStyle">
-		<view class="user-topbar" :style="userTopbarStyle">
-			<view class="user-topbar__main">
-				<view class="user-topbar__name">我的</view>
-			</view>
-		</view>
-		<scroll-view :scroll-y="modalName==null" class="page" :class="modalName!=null?'show':''" :style="userPageStyle">
+		<cu-custom class="user-cu-topbar" bgColor="bg-white" :isBack="false">
+			<block slot="content">
+				<view class="user-cu-topbar__title">我的</view>
+			</block>
+		</cu-custom>
+		<scroll-view :scroll-y="modalName==null" class="page" :class="modalName!=null?'show':''">
 			<view class="profile-section" v-if="user">
 				<view class="profile-card" @click="userInfo">
 					<view class="profile-card__top">
@@ -41,8 +41,8 @@
 						</view>
 						<view class="social-row__right">
 							<view class="social-avatar-group" v-if="myUserData.beAttentionLists && myUserData.beAttentionLists.length">
-								<view class="social-avatar" v-if="item.avatar!=''" :style="{'background-image':'url('+item.avatar+')'}" v-for="(item,index) in myUserData.beAttentionLists" :key="'be-'+index"></view>
-								<view class="social-avatar" v-else style="background-image: url(../../static/images/avatar.png);" v-for="(item,index) in myUserData.beAttentionLists" :key="'be-empty-'+index"></view>
+								<view class="social-avatar" v-if="item.avatar!=''" :style="{'background-image':'url('+item.avatar+')'}" v-for="(item,index) in myUserData.beAttentionLists" :key="index"></view>
+								<view class="social-avatar" v-else style="background-image: url(../../static/images/avatar.png);" v-for="(item,index) in myUserData.beAttentionLists" :key="index"></view>
 							</view>
 							<text class="social-row__count">{{myUserData.beAttentionListsCount}} 人</text>
 							<text class="cuIcon-right social-row__arrow"></text>
@@ -55,8 +55,8 @@
 						</view>
 						<view class="social-row__right">
 							<view class="social-avatar-group" v-if="myUserData.attentionLists && myUserData.attentionLists.length">
-								<view class="social-avatar" v-if="item.avatar!=''" :style="{'background-image':'url('+item.avatar+')'}" v-for="(item,index) in myUserData.attentionLists" :key="'att-'+index"></view>
-								<view class="social-avatar" v-else style="background-image: url(../../static/images/avatar.png);" v-for="(item,index) in myUserData.attentionLists" :key="'att-empty-'+index"></view>
+								<view class="social-avatar" v-if="item.avatar!=''" :style="{'background-image':'url('+item.avatar+')'}" v-for="(item,index) in myUserData.attentionLists" :key="index"></view>
+								<view class="social-avatar" v-else style="background-image: url(../../static/images/avatar.png);" v-for="(item,index) in myUserData.attentionLists" :key="index"></view>
 							</view>
 							<text class="social-row__count">{{myUserData.attentionListsCount}} 人</text>
 							<text class="cuIcon-right social-row__arrow"></text>
@@ -69,8 +69,8 @@
 						</view>
 						<view class="social-row__right">
 							<view class="social-avatar-group" v-if="myUserData.favorLists && myUserData.favorLists.length">
-								<view class="social-avatar" v-if="item.avatar!=''" :style="{'background-image':'url('+item.avatar+')'}" v-for="(item,index) in myUserData.favorLists" :key="'favor-'+index"></view>
-								<view class="social-avatar" v-else style="background-image: url(../../static/images/avatar.png);" v-for="(item,index) in myUserData.favorLists" :key="'favor-empty-'+index"></view>
+								<view class="social-avatar" v-if="item.avatar!=''" :style="{'background-image':'url('+item.avatar+')'}" v-for="(item,index) in myUserData.favorLists" :key="index"></view>
+								<view class="social-avatar" v-else style="background-image: url(../../static/images/avatar.png);" v-for="(item,index) in myUserData.favorLists" :key="index"></view>
 							</view>
 							<text class="social-row__count">{{myUserData.favorListsCount}} 次</text>
 							<text class="cuIcon-right social-row__arrow"></text>
@@ -214,8 +214,8 @@
 				messageCount:0,
 				failedCoverMap:{},
 				statusBarHeight:0,
-				topbarHeight:50,
-				topbarBottomGap:0
+				topbarHeight:72,
+				topbarBottomGap:10
 			};
 		},
 		computed:{
@@ -287,7 +287,11 @@
 				let statusBarHeight=Number(this.StatusBar || 0);
 				let systemInfo={};
 				try{
-					systemInfo=uni.getSystemInfoSync() || {};
+					if(typeof wx !== 'undefined' && typeof wx.getWindowInfo === 'function'){
+						systemInfo=wx.getWindowInfo() || {};
+					}else{
+						systemInfo=uni.getSystemInfoSync() || {};
+					}
 				}catch(error){
 					systemInfo={};
 				}
@@ -491,33 +495,29 @@
 		min-height: 100vh;
 		background: #f7f8fb;
 	}
-	.user-topbar{
-		position: fixed;
-		top: 0;
-		left: 0;
-		right: 0;
-		z-index: 30;
-		display:flex;
-		align-items:center;
-		padding: 0 24rpx;
-		box-sizing: border-box;
-		background:#ffffff;
+	.user-cu-topbar .cu-bar{
+		box-shadow: none;
 		border-bottom: 1rpx solid rgba(226, 232, 240, 0.72);
 	}
-	.user-topbar__main{
-		flex:1;
-		min-width:0;
-		height: 100%;
-		display:flex;
-		align-items:center;
+	.user-cu-topbar .cu-bar .content{
+		left: 24rpx;
+		right: 220upx;
+		width: auto;
+		text-align: left;
 	}
-	.user-topbar__name{
+	.user-cu-topbar__title{
 		font-size: 30rpx;
 		line-height: 1;
 		color:#111827;
 		font-weight: 400;
 		letter-spacing: .6rpx;
-		padding-left: 14rpx;
+		text-align: left;
+		transform: translateY(12rpx);
+		padding-left: 15rpx;
+	}
+	.page{
+		padding-top: 8rpx;
+		box-sizing: border-box;
 	}
 	.user-hidden-tools{
 		position: absolute;
@@ -579,7 +579,7 @@
 	.profile-name{
 		flex:1;
 		min-width:0;
-		font-size: 36rpx;
+		font-size: 32rpx;
 		line-height: 1.2;
 		font-weight: 600;
 		color: #1f2937;
@@ -593,17 +593,17 @@
 		border-radius: 999rpx;
 		background: #f8fafc;
 		border: 1rpx solid #e5e7eb;
-		font-size: 22rpx;
+		font-size: 20rpx;
 		color: #64748b;
 		flex-shrink: 0;
 	}
 	.profile-logout .cuIcon-right{
 		margin-left: 6rpx;
-		font-size: 20rpx;
+		font-size: 18rpx;
 	}
 	.profile-bio{
 		margin-top: 10rpx;
-		font-size: 22rpx;
+		font-size: 20rpx;
 		line-height: 1.4;
 		color: #94a3b8;
 	}
@@ -629,18 +629,18 @@
 		padding: 0 18rpx;
 	}
 	.profile-login-card__name{
-		font-size: 30rpx;
+		font-size: 28rpx;
 		font-weight: 600;
 		color:#1f2937;
 	}
 	.profile-login-card__desc{
 		margin-top: 8rpx;
-		font-size: 22rpx;
+		font-size: 20rpx;
 		color:#94a3b8;
 	}
 	.profile-login-card__arrow{
 		color:#c0c8d4;
-		font-size: 24rpx;
+		font-size: 22rpx;
 	}
 	.social-section{
 		padding: 18rpx 24rpx 4rpx;
@@ -689,7 +689,7 @@
 		color:#ec4899;
 	}
 	.social-row__title{
-		font-size: 30rpx;
+		font-size: 27rpx;
 		line-height: 1.2;
 		color:#334155;
 		font-weight: 500;
@@ -721,13 +721,13 @@
 		margin-left: 0;
 	}
 	.social-row__count{
-		font-size: 24rpx;
+		font-size: 22rpx;
 		color:#94a3b8;
 		white-space: nowrap;
 	}
 	.social-row__arrow{
 		margin-left: 12rpx;
-		font-size: 22rpx;
+		font-size: 20rpx;
 		color:#c0c8d4;
 	}
 	.page {
@@ -767,7 +767,7 @@
 	.publish-title{
 		display:flex;
 		align-items:center;
-		font-size: 32rpx;
+		font-size: 28rpx;
 		color:#2f3440;
 		font-weight:600;
 	}
@@ -795,7 +795,7 @@
 		margin-bottom: 20rpx;
 	}
 	.publish-date{
-		font-size: 24rpx;
+		font-size: 22rpx;
 		color:#9aa3b2;
 		padding: 0 8rpx 12rpx;
 	}
@@ -825,7 +825,7 @@
 		min-width:0;
 	}
 	.publish-text{
-		font-size: 30rpx;
+		font-size: 27rpx;
 		line-height: 1.45;
 		color:#2f3440;
 		font-weight: 500;
@@ -836,7 +836,7 @@
 		align-items:center;
 		flex-wrap:wrap;
 		margin-top: 12rpx;
-		font-size: 22rpx;
+		font-size: 20rpx;
 		color:#a4acb8;
 	}
 	.publish-meta text{
@@ -862,7 +862,7 @@
 		align-items:center;
 		justify-content:center;
 		color:#c9cfd8;
-		font-size: 26rpx;
+		font-size: 24rpx;
 		margin-left: 12rpx;
 		margin-top: 24rpx;
 		border-radius: 16rpx;
@@ -874,7 +874,7 @@
 		padding: 44rpx 24rpx;
 		text-align:center;
 		color:#a1a9b5;
-		font-size: 26rpx;
+		font-size: 24rpx;
 		box-shadow: 0 12rpx 30rpx rgba(148, 163, 184, 0.08);
 	}
 </style>

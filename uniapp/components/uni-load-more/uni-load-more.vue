@@ -25,7 +25,17 @@
 </template>
 
 <script>
-	const platform = uni.getSystemInfoSync().platform
+	const platform = (() => {
+		try {
+			if (typeof wx !== 'undefined' && typeof wx.getDeviceInfo === 'function') {
+				const deviceInfo = wx.getDeviceInfo() || {}
+				return deviceInfo.platform || ''
+			}
+			return uni.getSystemInfoSync().platform
+		} catch (error) {
+			return ''
+		}
+	})()
 
 	/**
 	 * LoadMore 加载更多

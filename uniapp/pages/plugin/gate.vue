@@ -1,13 +1,8 @@
 <template>
   <view class="gate-page" :style="themeVarsStyle">
+    <image class="gate-cover-image" src="../../static/images/login-cover.png" mode="aspectFill"></image>
+    <view class="gate-cover-mask"></view>
     <view class="gate-body">
-      <view class="gate-topbar">
-        <view class="gate-topbar__back" @tap="goBack">
-          <text class="cuIcon-back"></text>
-        </view>
-        <view class="gate-topbar__title">登录</view>
-        <view class="gate-topbar__placeholder"></view>
-      </view>
       <view class="gate-action">
         <button class="cu-btn bg-purple round gate-btn-primary" @tap="handlePrimary">{{ buttonText }}</button>
       </view>
@@ -190,12 +185,23 @@ page {
 }
 .gate-page {
   min-height: 100vh;
-  background-image:
-    linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,248,235,0.24) 48%, rgba(120,203,201,0.22) 100%),
-    url('../../static/images/login-cover.png');
-  background-size: cover;
-  background-position: center top;
-  background-repeat: no-repeat;
+  position: relative;
+  overflow: hidden;
+}
+.gate-cover-image,
+.gate-cover-mask {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+}
+.gate-cover-image {
+  width: 100%;
+  height: 100%;
+}
+.gate-cover-mask {
+  background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,248,235,0.24) 48%, rgba(120,203,201,0.22) 100%);
 }
 .gate-body {
   min-height: 100vh;
@@ -205,42 +211,8 @@ page {
   align-items: center;
   justify-content: flex-end;
   box-sizing: border-box;
-}
-.gate-topbar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: calc(env(safe-area-inset-top) + 16rpx) 24rpx 0;
-  box-sizing: border-box;
-}
-.gate-topbar__back,
-.gate-topbar__placeholder {
-  width: 72rpx;
-  height: 72rpx;
-  flex-shrink: 0;
-}
-.gate-topbar__back {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.18);
-  backdrop-filter: blur(10rpx);
-  -webkit-backdrop-filter: blur(10rpx);
-  color: #ffffff;
-  font-size: 34rpx;
-}
-.gate-topbar__title {
-  font-size: 38rpx;
-  line-height: 1;
-  font-weight: 500;
-  letter-spacing: 2rpx;
-  color: #ffffff;
-  text-shadow: 0 4rpx 12rpx rgba(68, 94, 96, 0.2);
+  position: relative;
+  z-index: 2;
 }
 .gate-action {
   width: 100%;

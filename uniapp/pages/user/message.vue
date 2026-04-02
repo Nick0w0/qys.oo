@@ -1,12 +1,12 @@
 <template>
 	<view :style="themeVarsStyle" class="message-page">
-		<view class="message-topbar" :style="messageTopbarStyle">
-			<view class="message-topbar__main">
-				<view class="message-topbar__name">通知消息</view>
-			</view>
-		</view>
+		<cu-custom class="message-cu-topbar" bgColor="bg-white" :isBack="false">
+			<block slot="content">
+				<view class="message-cu-topbar__title">通知消息</view>
+			</block>
+		</cu-custom>
 
-		<view class="message-body" :style="messageBodyStyle">
+		<view class="message-body">
 			<view class="message-hero">
 				<view class="message-tab-shell">
 					<view class="message-tabs">
@@ -105,8 +105,8 @@
 				messageCount:0,
 				user:[],
 				statusBarHeight:0,
-				topbarHeight:50,
-				topbarBottomGap:0,
+				topbarHeight:72,
+				topbarBottomGap:10,
 				cndUrl:cndUrl,
 				messageCoverFailedMap:{}
 			};
@@ -164,7 +164,11 @@
 				let statusBarHeight=Number(this.StatusBar || 0);
 				let systemInfo={};
 				try{
-					systemInfo=uni.getSystemInfoSync() || {};
+					if(typeof wx !== 'undefined' && typeof wx.getWindowInfo === 'function'){
+						systemInfo=wx.getWindowInfo() || {};
+					}else{
+						systemInfo=uni.getSystemInfoSync() || {};
+					}
 				}catch(error){
 					systemInfo={};
 				}
@@ -335,36 +339,28 @@
 		min-height: 100vh;
 		background: #f4f6fb;
 	}
-	.message-topbar{
-		position: fixed;
-		top: 0;
-		left: 0;
-		right: 0;
-		z-index: 30;
-		display:flex;
-		align-items:center;
-		padding: 0 24rpx;
-		box-sizing: border-box;
-		background:#ffffff;
+	.message-cu-topbar .cu-bar{
+		box-shadow: none;
 		border-bottom: 1rpx solid rgba(226, 232, 240, 0.72);
 	}
-	.message-topbar__main{
-		flex:1;
-		min-width:0;
-		height: 100%;
-		display: flex;
-		align-items: center;
+	.message-cu-topbar .cu-bar .content{
+		left: 24rpx;
+		right: 220upx;
+		width: auto;
+		text-align: left;
 	}
-	.message-topbar__name{
+	.message-cu-topbar__title{
 		font-size: 30rpx;
 		line-height: 1;
 		color:#111827;
 		font-weight: 400;
 		letter-spacing: .6rpx;
-		padding-left: 14rpx;
+		text-align: left;
+		transform: translateY(12rpx);
+		padding-left: 15rpx;
 	}
 	.message-body{
-		padding: 0 0 180rpx;
+		padding: 8rpx 0 180rpx;
 	}
 	.message-hero{
 		padding: 12rpx 24rpx 20rpx;
@@ -396,13 +392,13 @@
 		border-radius: 999rpx;
 		background: #ffffff;
 		color: #6f7c91;
-		font-size: 20rpx;
+		font-size: 22rpx;
 		font-weight: 500;
 		white-space: nowrap;
 	}
 	.message-tab text:first-child{
 		margin-right: 4rpx;
-		font-size: 18rpx;
+		font-size: 20rpx;
 		flex-shrink: 0;
 	}
 	.message-tab text:last-child{
@@ -429,7 +425,7 @@
 		border-radius: 999rpx;
 		background: #eef3ff !important;
 		color: #5f7ee8 !important;
-		font-size: 18rpx;
+		font-size: 20rpx;
 		font-weight: 500;
 		border: none;
 		box-shadow: none;

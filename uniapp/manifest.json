@@ -1,9 +1,9 @@
 {
-    "name" : "种草分享",
-    "appid" : "",
-    "description" : "瀑布流种草分享",
-    "versionName" : "1.0.8",
-    "versionCode" : "108",
+    "name" : "青遇校园圈",
+    "appid" : "__UNI__B4389B0",
+    "description" : "青遇校园圈",
+    "versionName" : "1.1.0",
+    "versionCode" : 110,
     "transformPx" : false,
     /* 5+App特有相关 */
     "app-plus" : {
@@ -103,8 +103,8 @@
     "quickapp" : {},
     /* 小程序特有相关 */
     "mp-weixin" : {
-        "appid" : "",
-		"requiredPrivateInfos" : [ "getLocation", "chooseLocation" ],
+        "appid" : "wx5ae9f9f0eb0ebf02",
+        "requiredPrivateInfos" : [ "getLocation", "chooseLocation" ],
         "setting" : {
             "urlCheck" : false,
             "es6" : true

@@ -1,22 +1,18 @@
 ﻿<template>
 	<view :style="themeVarsStyle" class="publish-page-root">
-		<view class="publish-topbar" :style="publishTopbarStyle">
-			<view class="publish-topbar__back" @tap="goBack">
-				<text class="cuIcon-back"></text>
-				<text>返回</text>
-			</view>
-			<view class="publish-topbar__main">
-				<view class="publish-topbar__name">发布动态</view>
-			</view>
-		</view>
-		<view class="publish-page-body" :style="publishBodyStyle">
+		<cu-custom class="publish-cu-topbar" bgColor="bg-white" :isBack="true">
+			<block slot="content">
+				<view class="publish-cu-topbar__title">发布动态</view>
+			</block>
+		</cu-custom>
+		<view class="publish-page-body">
 			<view class="cu-form-group margin-top">
-				<input placeholder="请输入动态标题" name="input" @input="textareaAInput"></input>
+				<input class="publish-title-input" placeholder="请输入动态标题" placeholder-style="font-size:24rpx;color:#9aa3b2;" name="input" @input="textareaAInput"></input>
 			</view>
 			
 			<!-- !!!!! placeholder 在ios表现有偏移 建议使用 第一种样式 -->
 			<view class="cu-form-group margin-top">
-				<textarea maxlength="-1" :disabled="modalName!=null" @input="textareaBInput" placeholder="写点什么吧"></textarea>
+				<textarea class="publish-content-input" maxlength="-1" :disabled="modalName!=null" @input="textareaBInput" placeholder="写点什么吧" placeholder-style="font-size:24rpx;color:#9aa3b2;"></textarea>
 			</view>
 			
 			<view class="cu-form-group margin-top" @tap="showModal" data-target="ChooseModal">
@@ -108,7 +104,7 @@
 			
 				<view class="cu-bar btn-group margin-top">
 					<!-- <button class="cu-btn bg-green shadow-blur round">保存</button> -->
-					<button class="cu-btn bg-purple shadow-blur round" @click="publishForm()"><text class="cuIcon-cameraadd"></text></text> 发布动态</button>
+					<button class="cu-btn bg-purple shadow-blur round" @click="publishForm()"><text class="cuIcon-cameraadd"></text> 发布</button>
 				</view>
 		</view>
 	</view>
@@ -218,7 +214,11 @@
 				let statusBarHeight=Number(this.StatusBar || 0);
 				let systemInfo={};
 				try{
-					systemInfo=uni.getSystemInfoSync() || {};
+					if(typeof wx !== 'undefined' && typeof wx.getWindowInfo === 'function'){
+						systemInfo=wx.getWindowInfo() || {};
+					}else{
+						systemInfo=uni.getSystemInfoSync() || {};
+					}
 				}catch(error){
 					systemInfo={};
 				}
@@ -540,52 +540,94 @@
 		min-height: 100vh;
 		background: #f6f7fb;
 	}
-	.publish-topbar{
-		position: fixed;
-		top: 0;
-		left: 0;
-		right: 0;
-		z-index: 30;
-		display: flex;
-		align-items: center;
-		padding: 0 24rpx;
-		box-sizing: border-box;
-		background: #ffffff;
+	.publish-cu-topbar .cu-bar{
+		box-shadow: none;
 		border-bottom: 1rpx solid rgba(226, 232, 240, 0.72);
 	}
-	.publish-topbar__back{
-		position: absolute;
-		left: 24rpx;
-		bottom: 0;
-		height: 50px;
-		display: inline-flex;
-		align-items: center;
-		gap: 8rpx;
-		font-size: 32rpx;
+	.publish-cu-topbar .cu-bar .action{
+		min-width: 88rpx;
+		padding-left: 24rpx;
 		color: #111827;
-		z-index: 2;
 	}
-	.publish-topbar__main{
-		flex: 1;
-		min-width: 0;
-		height: 100%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
+	.publish-cu-topbar .cu-bar .action .cuIcon-back{
+		font-size: 34rpx;
+		font-weight: 400;
 	}
-	.publish-topbar__name{
+	.publish-cu-topbar .cu-bar .content{
+		left: 0;
+		right: 0;
+		width: auto;
+		text-align: center;
+	}
+	.publish-cu-topbar__title{
 		font-size: 30rpx;
 		line-height: 1;
 		color: #111827;
 		font-weight: 400;
 		letter-spacing: .6rpx;
+		text-align: center;
+		transform: translateY(12rpx);
+		padding-left: 15rpx;
 	}
 	.publish-page-body{
 		background: #f6f7fb;
-		padding-bottom: 40rpx;
+		padding-top: 8rpx;
+		padding-bottom: 28rpx;
+	}
+	.publish-page-body .margin-top{
+		margin-top: 14rpx;
+	}
+	.publish-page-body .cu-form-group{
+		min-height: 92rpx;
+		padding-top: 10rpx;
+		padding-bottom: 10rpx;
 	}
 	.cu-form-group .title {
 		min-width: calc(4em + 15px);
+		font-size: 24rpx;
+		color: #334155;
+	}
+	.publish-title-input{
+		font-size: 24rpx;
+		color: #1f2937;
+	}
+	.publish-content-input{
+		font-size: 24rpx;
+		line-height: 1.65;
+		min-height: 220rpx;
+		color: #1f2937;
+	}
+	.publish-page-body .action{
+		font-size: 22rpx;
+		color: #94a3b8;
+	}
+	.publish-page-body .text-grey{
+		font-size: 22rpx;
+	}
+	.publish-page-body .cu-tag{
+		font-size: 20rpx;
+	}
+	.publish-page-body .cu-bar{
+		min-height: 78rpx;
+	}
+	.publish-page-body .grid-square>view{
+		width: 132rpx;
+		height: 132rpx;
+	}
+	.publish-page-body .solids .cuIcon-cameraadd{
+		font-size: 44rpx;
+	}
+	.publish-page-body switch{
+		transform: scale(0.88);
+		transform-origin: right center;
+	}
+	.publish-page-body .btn-group{
+		margin-top: 16rpx;
+	}
+	.publish-page-body .btn-group .cu-btn{
+		height: 72rpx;
+		padding: 0 34rpx;
+		font-size: 24rpx;
 	}
 	.selectPic{ color:#FFBC30}
 </style>

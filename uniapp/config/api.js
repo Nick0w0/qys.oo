@@ -6,6 +6,45 @@ import * as common from './common.js' //引入common
 import * as db from './db.js' //引入common
 // 需要登陆的，都写到这里，否则就是不需要登陆的接口
 const methodsToken = ['profile','refreshUser','changeMobile','publish','dolike','doComment','doAttention','doAttentionLists','showMessageLists','doMessageRead','doCommentSub','doLikeLists','doCommentLists','userDataLists','doMyDiscoverLists','delData','attentionData','bindSchool','index'];
+
+const isHttpApi = /^http:\/\//i.test(baseApiUrl);
+
+const isWechatRealDevice = () => {
+	// #ifdef MP-WEIXIN
+	try {
+		if (typeof wx === 'undefined' || typeof wx.getSystemInfoSync !== 'function') {
+			return true;
+		}
+		const systemInfo = wx.getSystemInfoSync() || {};
+		const platform = systemInfo.platform ? String(systemInfo.platform).toLowerCase() : '';
+		return platform !== 'devtools';
+	} catch (error) {
+		return true;
+	}
+	// #endif
+	return false;
+}
+
+const getRequestErrorMessage = error => {
+	const errMsg = error && error.errMsg ? String(error.errMsg) : '';
+	if (isWechatRealDevice() && isHttpApi) {
+		return '当前接口域名仍是HTTP，真机小程序必须使用HTTPS'
+	}
+	if (errMsg.indexOf('url not in domain list') >= 0) {
+		return '请求域名未配置到微信后台合法域名'
+	}
+	if (errMsg.indexOf('ssl hand shake error') >= 0 || errMsg.indexOf('certificate') >= 0 || errMsg.indexOf('SSL') >= 0) {
+		return 'HTTPS证书异常，请检查证书配置'
+	}
+	if (errMsg.indexOf('timeout') >= 0) {
+		return '网络请求超时，请稍后重试'
+	}
+	if (errMsg.indexOf('fail') >= 0) {
+		return '网络请求失败，请检查域名或网络'
+	}
+	return '请求失败，请稍后重试'
+}
+
 const post = (method, data, callback,type) => {
 	let userToken = '';
 	const auth = db.get("auth");
@@ -28,6 +67,23 @@ const post = (method, data, callback,type) => {
 	}else{
 		method = '/' + method
 	}
+
+	if (isWechatRealDevice() && isHttpApi) {
+		const result = {
+			code: 0,
+			msg: '当前接口域名仍是HTTP，真机小程序无法请求，请改成HTTPS并配置微信后台合法域名'
+		};
+		uni.showToast({
+			title: result.msg,
+			icon: 'none',
+			duration: 2500
+		});
+		if (typeof callback === 'function') {
+			callback(result);
+		}
+		return false;
+	}
+
 	uni.request({
 		url: baseApiUrl + method,
 		data: data,
@@ -37,6 +93,7 @@ const post = (method, data, callback,type) => {
 			'token': userToken,
 		},
 		method: 'POST',
+		timeout: 15000,
 		success: (response) => {
 			const result = response.data
 			if (result.msg == 'Please login' || result.msg == '请登陆') {
@@ -57,8 +114,14 @@ const post = (method, data, callback,type) => {
 			callback(result);
 		},
 		fail: (error) => {
-			if (error && error.response) {
-				showError(error.response);
+			const result = {
+				code: 0,
+				msg: getRequestErrorMessage(error),
+				error: error
+			};
+			showError(error && error.response ? error.response : result);
+			if (typeof callback === 'function') {
+				callback(result);
 			}
 		},
 	});
@@ -177,7 +240,7 @@ const showError = error => {
 			errorMsg = 'HTTP版本不受支持'
 			break
 		default:
-			errorMsg = error.msg
+			errorMsg = error && error.msg ? error.msg : getRequestErrorMessage(error)
 			break
 	}
 	uni.showToast({

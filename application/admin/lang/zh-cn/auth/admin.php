@@ -6,7 +6,7 @@ return [
     'Group'                                     => '所属组别',
     'Role_template'                             => '账号类型',
     'Role template school manager'              => '学校管理员',
-    'Role template school manager desc'         => '当前按精简后台执行，只能处理本校帖子审核、置顶和删除。',
+    'Role template school manager desc'         => '当前按精简后台执行，只能处理本校内容治理与用户信息，不可跨学校操作。',
     'Role template platform owner'              => '平台总账号',
     'Role template legacy custom'               => '旧版自定义角色',
     'Role template legacy custom desc'          => '该账号仍在使用旧版自定义角色，建议改成固定模板，后续交付更稳定。',

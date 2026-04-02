@@ -7,12 +7,11 @@
 				<input class="search-bar-input" v-model="keywords" :focus="true" confirm-type="search" placeholder="搜索帖子标题或正文" @confirm="submitSearch" />
 				<text class="search-bar-action" @tap="submitSearch">搜索</text>
 			</view>
-			<view class="search-page-tip">{{ searchScopeText }}</view>
 			<view class="search-empty" v-if="!searched && !loading">输入关键词开始搜索</view>
 			<view class="search-empty" v-else-if="searched && !loading && list.length===0">暂无相关帖子</view>
 			<view class="search-loading" v-if="loading && list.length===0">搜索中...</view>
 			<view class="search-feed-list" v-if="list.length>0">
-				<view class="search-feed-card" v-for="(item,index) in list" :key="item.feed_key || index">
+				<view class="search-feed-card" v-for="(item,index) in list" :key="item.feed_key">
 					<view class="search-feed-head">
 						<view class="search-feed-user" :data-id="item.id" @tap="detailTab">
 							<image class="search-feed-avatar" v-if="item.avatar" :src="item.avatar" mode="aspectFill"></image>
@@ -24,7 +23,7 @@
 						<view class="search-feed-text" v-if="item.title">{{ item.title }}</view>
 						<view class="search-feed-text" v-if="item.feed_text">{{ item.feed_text }}</view>
 						<view class="search-feed-media" v-if="item.feed_media && item.feed_media.length>0">
-							<view class="search-feed-media-item" v-for="(img,mediaIndex) in item.feed_media" :key="item.feed_key + '-img-' + mediaIndex" @tap.stop="previewFeedImages(item, mediaIndex)">
+							<view class="search-feed-media-item" v-for="(img,mediaIndex) in item.feed_media" :key="mediaIndex" @tap.stop="previewFeedImages(item, mediaIndex)">
 								<image :src="img" mode="aspectFill"></image>
 							</view>
 						</view>
